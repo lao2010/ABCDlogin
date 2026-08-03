@@ -6,7 +6,11 @@
 package com.abcdlogin;
 
 import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -23,8 +27,15 @@ public class I18n {
     private static final Map<String, Map<String, String>> STRINGS = new HashMap<>();
 
     static {
-        STRINGS.put(ZH_CN, zhStrings());
-        STRINGS.put(EN_US, enStrings());
+        loadDefaultLanguages();
+    }
+
+    private static void loadDefaultLanguages() {
+        STRINGS.clear();
+        STRINGS.put("zh_cn", zhStrings());
+        STRINGS.put("en_us", enStrings());
+        STRINGS.put("ja_jp", jaStrings());
+        STRINGS.put("fr_fr", frStrings());
     }
 
     /** 获取指定语言的文本，支持 {0} {1} 占位符 */
@@ -60,6 +71,37 @@ public class I18n {
         } catch (Exception e) {
             return DEFAULT_LANG;
         }
+    }
+
+    /**
+     * 加载语言文件（用于热重载）
+     */
+    public static Map<String, String> loadLanguageFile(Path filePath) throws IOException {
+        String content = Files.readString(filePath);
+        Map<String, String> strings = new HashMap<>();
+        
+        // 简单的 JSON 解析（实际项目中应使用 JSON 库）
+        String[] lines = content.split("\n");
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("\"") && line.contains("\":") && line.endsWith("\",")) {
+                String[] parts = line.split(":", 2);
+                if (parts.length == 2) {
+                    String key = parts[0].substring(1).replace("\"", "");
+                    String value = parts[1].substring(1).replace("\",", "");
+                    strings.put(key, value);
+                }
+            }
+        }
+        
+        return strings;
+    }
+
+    /**
+     * 获取回退语言包（用于热重载时兜底）
+     */
+    public static Map<String, String> getFallbackStrings(String lang) {
+        return STRINGS.getOrDefault(lang, STRINGS.get(DEFAULT_LANG));
     }
 
     private static Map<String, String> zhStrings() {
@@ -102,6 +144,8 @@ public class I18n {
         m.put("language.available", "§e可用语言: §fzh_cn §e(简体中文) §7/§f en_us §e(English)");
         m.put("language.unknown", "§c未知语言: {0}。可用: zh_cn, en_us");
         m.put("language.switched", "§a语言已切换为 §f{0}");
+        m.put("language.reloaded", "§a语言包已重新加载");
+        m.put("language.updated", "§a语言 {0} 已更新");
 
         // ── 未登录操作拦截 ──
         m.put("blocked.loginFirst", "§c请先登录！使用 /login <密码>");
@@ -198,6 +242,8 @@ public class I18n {
         m.put("language.available", "§eAvailable: §fzh_cn §e(简体中文) §7/§f en_us §e(English)");
         m.put("language.unknown", "§cUnknown language: {0}. Available: zh_cn, en_us");
         m.put("language.switched", "§aLanguage switched to §f{0}");
+        m.put("language.reloaded", "§aLanguage packages reloaded");
+        m.put("language.updated", "§aLanguage {0} updated");
 
         // ── Blocked actions while not logged in ──
         m.put("blocked.loginFirst", "§cPlease log in first! Use /login <password>");
@@ -251,6 +297,194 @@ public class I18n {
         m.put("email.status.unbindHint", "§eUse /email unbind confirm to unbind");
         m.put("email.status.notBound", "§cNo email bound");
         m.put("email.status.bindHint", "§eUse /email bind <email> to bind");
+        return m;
+    }
+
+    private static Map<String, String> jaStrings() {
+        Map<String, String> m = new HashMap<>();
+        // ── ログイン / 登録 ──
+        m.put("login.usage", "§e使い方: §f/login <パスワード> §eまたは §f/login code <コード>");
+        m.put("login.success", "§aログイン成功！お帰りなさい");
+        m.put("login.wrongPassword", "§cパスワードが違います");
+        m.put("login.notRegistered", "§cアカウントが登録されていません。まず /register <パスワード> <確認> を使用してください");
+        m.put("login.alreadyLoggedIn", "§a既にログインしています");
+        m.put("login.notBound", "§cメールアドレスが未設定のため、コードログインはできません");
+        m.put("login.codeUsage", "§e使い方: §f/login code <コード>");
+        m.put("login.codeChecking", "§7コードを検証中、お待ちください...");
+        m.put("login.codeSuccess", "§aコード検証成功！ログインしました");
+        m.put("login.codePending", "§7コードがまだ到着していません。60秒間（5秒ごとに検索）検索を開始します...");
+        m.put("login.codeHint", "§aヒント: /email verify でコードを取得した場合、メールを送信するとサーバーが自動で許可します。このコマンドを再入力する必要はありません");
+        m.put("login.codeTimeout", "§cコード検索がタイムアウトしました（60秒）。コードをメールの件名に入れて {0} に送信した後、再試行してください");
+        m.put("login.bindReminder", "§eメールアドレスを §f/email bind <メールアドレス> §eで設定することをお勧めします。コードログインとパスワード再設定に使用できます");
+        m.put("register.usage", "§e使い方: §f/register <パスワード> <確認パスワード>");
+        m.put("register.success", "§a登録成功！自動でログインしました");
+        m.put("register.bindReminder", "§eヒント: コードログインとパスワード再設定のため、メールアドレスの設定をお勧めします");
+        m.put("register.alreadyRegistered", "§cアカウントは既に登録されています。/login <パスワード> でログインしてください");
+        m.put("register.passwordMismatch", "§c入力されたパスワードが一致しません");
+        m.put("register.passwordTooShort", "§cパスワードは4文字以上必要です");
+
+        // ── サーバー参加メッセージ ──
+        m.put("join.title", "§6========== ログイン認証 ==========");
+        m.put("join.registerTitle", "§6========== サーバーへようこそ ==========");
+        m.put("join.loginPrompt", "§e§f/login <パスワード> §eでログインしてください");
+        m.put("join.emailOption1", "§eまたは §f/email verify §eでコードを取得");
+        m.put("join.emailOption2", "§eコードをメールの件名に入れて {0} に送信してください");
+        m.put("join.emailOption3", "§aサーバーがコードを検出すると自動で許可され、他の操作は不要です");
+        m.put("join.registerPrompt", "§e§f/register <パスワード> <確認パスワード> §eで登録してください");
+        m.put("join.registerReminder", "§e登録後はメールアドレスの設定をお勧めします。コードログインとパスワード再設定に使用できます");
+        m.put("join.warning", "§c注意: 未ログイン状態ではログイン待機エリア（観察者視点、装備とステータスバーが見えません）に移動され、移動、ブロック破壊、発言ができません！");
+
+        // ── 言語 ──
+        m.put("language.usage", "§e使い方: §f/language [zh_cn|en_us|ja_jp]");
+        m.put("language.current", "§a現在の言語: §f{0}");
+        m.put("language.available", "§e利用可能な言語: §fzh_cn §e(简体中文) §7/§f en_us §e(English) §7/§f ja_jp §e(日本語)");
+        m.put("language.unknown", "§c不明な言語: {0}。利用可能: zh_cn, en_us, ja_jp");
+        m.put("language.switched", "§a言語が §f{0} §aに切り替わりました");
+        m.put("language.reloaded", "§a言語パッケージが再読み込みされました");
+        m.put("language.updated", "§a言語 {0} が更新されました");
+
+        // ── 未ログイン操作ブロック ──
+        m.put("blocked.loginFirst", "§cまずログインしてください！ /login <パスワード> を使用");
+        m.put("blocked.chat", "§cログイン後にチャットしてください！ /login <パスワード> を使用");
+        m.put("blocked.commands", "§c未ログイン状態では、/login, /register, /email, /language コマンドのみ使用可能");
+
+        // ── Eメール ──
+        m.put("email.playerOnly", "§cこのコマンドはプレイヤーのみ使用可能です");
+        m.put("email.bind.success", "§aメールアドレスの設定に成功しました！");
+        m.put("email.bind.verifyReminder", "§eメールアドレスが使用可能か確認するには /email verify を使用してください");
+        m.put("email.bind.badFormat", "§cメールアドレスの形式が正しくありません");
+        m.put("email.bind.notRegistered", "§cまず /register <パスワード> <確認パスワード> で登録してください");
+        m.put("email.bind.fail", "§c設定に失敗しました。まず登録してください");
+        m.put("email.unbind.warn", "§cメールアドレスの解除は、コードログインとパスワード再設定ができなくなります！");
+        m.put("email.unbind.confirmPrompt", "§e解除を確認する場合は、 /email unbind confirm を使用してください");
+        m.put("email.unbind.success", "§aメールアドレスが解除されました");
+        m.put("email.unbind.rebindHint", "§e再設定する場合は /email bind <メールアドレス> を使用してください");
+        m.put("email.unbind.fail", "§c解除に失敗しました：メールアドレスが設定されていません");
+        m.put("email.verify.title", "§6========== メール認証 ==========");
+        m.put("email.verify.code", "§eあなたの認証コード: §f§l{0}");
+        m.put("email.verify.subject", "§7コードをメールの【件名】に入れて送信してください");
+        m.put("email.verify.sendTo", "§e送信先: {0}");
+        m.put("email.verify.autoLogin", "§aサーバーがコードを検出すると自動でログインします");
+        m.put("email.verify.checking", "§7コード検索中（最大60秒、5秒ごとにチェック）...");
+        m.put("email.verify.timeout", "§cコード検索がタイムアウトしました（60秒）。コードをメールの件名に入れて送信した後、再試行してください");
+        m.put("email.verify.success", "§aメール認証に成功しました！");
+        m.put("email.verify.alreadyBound", "§cメールアドレスは既に設定されています");
+        m.put("email.verify.notBound", "§cメールアドレスが設定されていません");
+        m.put("email.verify.noCode", "§7認証コードがまだありません。メールを送信してから数秒待ってください");
+        m.put("email.forgot.usage", "§e使い方: §f/email forgot <新しいパスワード> <確認パスワード>");
+        m.put("email.forgot.success", "§aパスワードがリセットされました！新しいパスワードでログインしてください");
+        m.put("email.forgot.notBound", "§cメールアドレスが設定されていないため、パスワードリセットはできません");
+        m.put("email.forgot.verifyRequired", "§cメール認証が必要です。まず /email verify を実行してください");
+        m.put("email.forgot.passwordMismatch", "§c入力された新しいパスワードが一致しません");
+        m.put("email.forgot.passwordTooShort", "§c新しいパスワードは4文字以上必要です");
+        m.put("email.forgot.apiError", "§cAPIエラー: {0}");
+        m.put("email.status.bound", "§aメールアドレス: {0}");
+        m.put("email.status.notBound", "§cメールアドレスは未設定です");
+        m.put("email.status.verified", "§aメール認証: 有効");
+        m.put("email.status.notVerified", "§7メール認証: 未実行");
+        m.put("email.status.apiError", "§cAPIエラー: {0}");
+
+        // ── コマンド一般 ──
+        m.put("command.usage", "§e使い方: {0}");
+        m.put("command.noPermission", "§c権限がありません");
+        m.put("command.playerOnly", "§cプレイヤーのみ使用可能です");
+        m.put("command.error", "§cコマンド実行エラー: {0}");
+        m.put("command.success", "§a操作成功");
+
+        return m;
+    }
+
+    private static Map<String, String> frStrings() {
+        Map<String, String> m = new HashMap<>();
+        // ── Connexion / Inscription ──
+        m.put("login.usage", "§eUsage: §f/login <mot_de_passe> §eou §f/login code <code>");
+        m.put("login.success", "§aConnexion réussie! Bienvenue");
+        m.put("login.wrongPassword", "§cMot de passe incorrect");
+        m.put("login.notRegistered", "§cCompte non enregistré. Veuillez d'abord utiliser /register <mot_de_passe> <confirmation>");
+        m.put("login.alreadyLoggedIn", "§aVous êtes déjà connecté");
+        m.put("login.notBound", "§cAucun e-mail lié, impossible d'utiliser la connexion par code");
+        m.put("login.codeUsage", "§eUsage: §f/login code <code>");
+        m.put("login.codeChecking", "§7Vérification du code, veuillez patienter...");
+        m.put("login.codeSuccess", "§aCode vérifié avec succès! Connecté");
+        m.put("login.codePending", "§7Le code n'est pas encore arrivé. Début de la détection toutes les 5 secondes (max 60s)...");
+        m.put("login.codeHint", "§aAstuce: Si vous avez obtenu un code via /email verify, l'envoi du e-mail déclenchera automatiquement l'accès, pas besoin de taper cette commande");
+        m.put("login.codeTimeout", "§cDélai d'attente du code dépassé (60s). Veuillez entrer le code dans l'objet du e-mail et envoyer à {0}, puis réessayer");
+        m.put("login.bindReminder", "§eNous recommandons de lier un e-mail avec §f/email bind <e-mail> §e pour la connexion par code et la récupération de mot de passe");
+        m.put("register.usage", "§eUsage: §f/register <mot_de_passe> <confirmation>");
+        m.put("register.success", "§aInscription réussie! Connexion automatique");
+        m.put("register.bindReminder", "§eAstuce: Liez un e-mail pour utiliser la connexion par code et récupérer votre mot de passe");
+        m.put("register.alreadyRegistered", "§cCompte déjà enregistré. Veuillez utiliser /login <mot_de_passe>");
+        m.put("register.passwordMismatch", "§cLes mots de passe ne correspondent pas");
+        m.put("register.passwordTooShort", "§cLe mot de passe doit contenir au moins 4 caractères");
+
+        // ── Messages de bienvenue ──
+        m.put("join.title", "§6========== Connexion Requise ==========");
+        m.put("join.registerTitle", "§6========== Bienvenue sur le Serveur ==========");
+        m.put("join.loginPrompt", "§eVeuillez utiliser §f/login <mot_de_passe> §epour vous connecter");
+        m.put("join.emailOption1", "§eou utilisez §f/email verify §epour obtenir un code");
+        m.put("join.emailOption2", "§eEntrez le code dans l'objet du e-mail et envoyez-le à {0}");
+        m.put("join.emailOption3", "§aLe serveur vous accordera l'accès automatiquement dès qu'il détecte le code");
+        m.put("join.registerPrompt", "§eVeuillez utiliser §f/register <mot_de_passe> <confirmation> §epour vous inscrire");
+        m.put("join.registerReminder", "§eAprès inscription, liez un e-mail pour la connexion par code et récupération de mot de passe");
+        m.put("join.warning", "§cAttention: Non connecté, vous êtes dans la zone d'attente (vue spectateur, équipement et HUD invisibles), impossible de bouger, détruire, construire, interagir, attaquer, ramasser ou chatter!");
+
+        // ── Langue ──
+        m.put("language.usage", "§eUsage: §f/language [zh_cn|en_us|fr_fr]");
+        m.put("language.current", "§aLangue actuelle: §f{0}");
+        m.put("language.available", "§eLangues disponibles: §fzh_cn §e(简体中文) §7/§f en_us §e(English) §7/§f fr_fr §e(Français)");
+        m.put("language.unknown", "§cLangue inconnue: {0}. Disponibles: zh_cn, en_us, fr_fr");
+        m.put("language.switched", "§aLangue changée en §f{0}");
+        m.put("language.reloaded", "§aPacks de langue rechargés");
+        m.put("language.updated", "§aLangue {0} mise à jour");
+
+        // ── Actions bloquées sans connexion ──
+        m.put("blocked.loginFirst", "§cVeuillez d'abord vous connecter! Utilisez /login <mot_de_passe>");
+        m.put("blocked.chat", "§cVeuillez vous connecter avant de chatter! Utilisez /login <mot_de_passe>");
+        m.put("blocked.commands", "§cNon connecté, seuls ces commandes sont autorisées: /login, /register, /email, /language");
+
+        // ── E-mail ──
+        m.put("email.playerOnly", "§cCette commande est réservée aux joueurs");
+        m.put("email.bind.success", "§aE-mail lié avec succès!");
+        m.put("email.bind.verifyReminder", "§eNous recommandons d'utiliser /email verify pour vérifier si l'e-mail fonctionne");
+        m.put("email.bind.badFormat", "§cFormat d'e-mail invalide");
+        m.put("email.bind.notRegistered", "§cVeuillez d'abord vous inscrire avec /register <mot_de_passe> <confirmation>");
+        m.put("email.bind.fail", "§cÉchec de liaison, veuillez d'abord vous inscrire");
+        m.put("email.unbind.warn", "§cDélier l'e-mail empêchera la connexion par code et la récupération de mot de passe!");
+        m.put("email.unbind.confirmPrompt", "§ePour confirmer le déliement, utilisez /email unbind confirm");
+        m.put("email.unbind.success", "§aE-mail délié");
+        m.put("email.unbind.rebindHint", "§ePour le lier à nouveau, utilisez /email bind <e-mail>");
+        m.put("email.unbind.fail", "§cÉchec du déliement: aucun e-mail lié");
+        m.put("email.verify.title", "§6========== Vérification E-mail ==========");
+        m.put("email.verify.code", "§eVotre code de vérification: §f§l{0}");
+        m.put("email.verify.subject", "§7Veuillez entrer le code dans l'[objet] du e-mail");
+        m.put("email.verify.sendTo", "§eEnvoyer à: {0}");
+        m.put("email.verify.autoLogin", "§aLe serveur vous accordera l'accès automatiquement dès qu'il détectera le code");
+        m.put("email.verify.checking", "§7Recherche du code (max 60s, vérification toutes les 5s)...");
+        m.put("email.verify.timeout", "§cDélai de recherche du code dépassé (60s). Veuillez entrer le code dans l'objet et envoyer, puis réessayer");
+        m.put("email.verify.success", "§aVérification e-mail réussie!");
+        m.put("email.verify.alreadyBound", "§cUn e-mail est déjà lié");
+        m.put("email.verify.notBound", "§cAucun e-mail lié");
+        m.put("email.verify.noCode", "§7Aucun code de vérification reçu. Veuillez attendre quelques secondes après l'envoi du e-mail");
+        m.put("email.forgot.usage", "§eUsage: §f/email forgot <nouveau_mot_de_passe> <confirmation>");
+        m.put("email.forgot.success", "§aMot de passe réinitialisé! Veuillez vous connecter avec le nouveau mot de passe");
+        m.put("email.forgot.notBound", "§cAucun e-mail lié, impossible de réinitialiser le mot de passe");
+        m.put("email.forgot.verifyRequired", "§cVérification e-mail requise. Veuillez d'abord exécuter /email verify");
+        m.put("email.forgot.passwordMismatch", "§cLes nouveaux mots de passe ne correspondent pas");
+        m.put("email.forgot.passwordTooShort", "§cLe nouveau mot de passe doit contenir au moins 4 caractères");
+        m.put("email.forgot.apiError", "§cErreur API: {0}");
+        m.put("email.status.bound", "§aE-mail: {0}");
+        m.put("email.status.notBound", "§cAucun e-mail lié");
+        m.put("email.status.verified", "§aVérification e-mail: Valide");
+        m.put("email.status.notVerified", "§7Vérification e-mail: Non effectuée");
+        m.put("email.status.apiError", "§cErreur API: {0}");
+
+        // ── Commandes générales ──
+        m.put("command.usage", "§eUsage: {0}");
+        m.put("command.noPermission", "§cPermissions insuffisantes");
+        m.put("command.playerOnly", "§cCommande réservée aux joueurs");
+        m.put("command.error", "§cErreur d'exécution: {0}");
+        m.put("command.success", "§aOpération réussie");
+
         return m;
     }
 }

@@ -29,14 +29,17 @@ Minecraft 服务器登录验证模组（原 LoginMod），基于 **NeoForge 21.1
 | `/email forgot <新密码> <确认密码>` | 忘记密码（邮箱验证通过后重置） |
 | `/email unbind [confirm]` | 解绑邮箱（需 confirm 确认） |
 | `/email status` | 查看邮箱绑定状态 |
-| `/language [zh_cn\|en_us]` | 切换语言（自动记录，未登录也可用） |
+| `/language [zh_cn|en_us|ja_jp|fr_fr]` | 切换语言（自动记录，未登录也可用） |
+| `/language reload` | [管理员] 热重载语言包（无需重启服务器） |
 
 ## 多语言
 
-- 内置 **简体中文 (zh_cn)** 与 **English (en_us)** 两套完整界面
-- 使用 `/language` 查看当前语言，`/language en_us` 切换为英文
+- 内置 **简体中文 (zh_cn)**、**English (en_us)**、**日本語 (ja_jp)**、**Français (fr_fr)** 四套完整界面
+- 使用 `/language` 查看当前语言，`/language ja_jp` 切换为日文
 - 语言偏好**自动记录**：已注册玩家持久化保存，下次加入自动使用上次选择的语言
-- 未登录玩家在等待区也可以切换语言（命令白名单已包含 /language）
+- 未登录玩家在等待区也可以切换语言（命令白名单已包含 `/language`）
+- **热重载功能**：管理员使用 `/language reload` 可实时更新语言包，无需重启服务器
+- 语言文件位置：`config/abcdlogin/lang/`（热重载监听此目录）
 
 ## 邮箱验证流程
 

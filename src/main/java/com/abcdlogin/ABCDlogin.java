@@ -7,6 +7,10 @@ package com.abcdlogin;
 
 import com.abcdlogin.config.ModConfig;
 import com.abcdlogin.data.PlayerDataManager;
+import com.abcdlogin.commands.RegisterCommand;
+import com.abcdlogin.commands.LoginCommand;
+import com.abcdlogin.commands.EmailCommand;
+import com.abcdlogin.commands.LanguageCommand;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket;
 import net.minecraft.resources.ResourceKey;
@@ -57,8 +61,14 @@ public class ABCDlogin {
 
         NeoForge.EVENT_BUS.register(new EventHandler());
 
-        LOGGER.info("[ABCDlogin] ABCDlogin 已加载，版本 1.5.0");
+        LOGGER.info("[ABCDlogin] ABCDlogin 已加载，版本 {}", ABCDlogin.VERSION);
     }
+
+    public static String VERSION = "1.8.0";
+
+    // ═══════════════════════════════════════════════════════
+    //  传送工具
+    // ═══════════════════════════════════════════════════════
 
     public static PlayerDataManager getPlayerDataManager() {
         return playerDataManager;

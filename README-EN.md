@@ -29,14 +29,17 @@ A Minecraft server login authentication mod (formerly LoginMod) based on **NeoFo
 | `/email forgot <new password> <confirm password>` | Forgot Password (reset after email verification) |
 | `/email unbind [confirm]` | Unbind Email (requires “confirm” to confirm) |
 | `/email status` | View Email Binding Status |
-| `/language [zh_cn\|en_us]` | Switch language (saved automatically, also available while not logged in) |
+| `/language [zh_cn|en_us|ja_jp|fr_fr]` | Switch language (saved automatically, also available while not logged in) |
+| `/language reload` | [Admin] Hot-reload language packages (no server restart needed) |
 
 ## Multi-language
 
-- Two complete interfaces: **Simplified Chinese (zh_cn)** and **English (en_us)**
-- Use `/language` to view the current language, `/language en_us` to switch to English
+- Four complete interfaces: **Simplified Chinese (zh_cn)**, **English (en_us)**, **日本語 (ja_jp)**, **Français (fr_fr)**
+- Use `/language` to view the current language, `/language ja_jp` to switch to Japanese
 - Language preference is **saved automatically**: persisted for registered players and restored on next join
 - Players in the waiting area can also switch language (allowed command while not logged in)
+- **Hot-reload feature**: Admins can use `/language reload` to update language packages in real-time without server restart
+- Language files location: `config/abcdlogin/lang/` (hot-reload watches this directory)
 
 ## Email Verification Process
 
