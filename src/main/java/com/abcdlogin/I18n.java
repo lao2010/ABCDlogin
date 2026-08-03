@@ -52,6 +52,16 @@ public class I18n {
         return isValid(lang) ? lang.toLowerCase(Locale.ROOT) : DEFAULT_LANG;
     }
 
+    /** 获取配置的默认语言（未设置时回退 zh_cn） */
+    public static String getDefaultLang() {
+        try {
+            String lang = com.abcdlogin.config.ModConfig.DATA.defaultLanguage.get();
+            return isValid(lang) ? lang : DEFAULT_LANG;
+        } catch (Exception e) {
+            return DEFAULT_LANG;
+        }
+    }
+
     private static Map<String, String> zhStrings() {
         Map<String, String> m = new HashMap<>();
         // ── 登录 / 注册 ──

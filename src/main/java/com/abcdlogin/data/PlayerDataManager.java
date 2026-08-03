@@ -78,7 +78,7 @@ public class PlayerDataManager {
             this.registeredAt = System.currentTimeMillis();
             this.lastLoginAt = 0;
             this.lastLoginIp = "";
-            this.language = I18n.DEFAULT_LANG;
+            this.language = I18n.getDefaultLang();
         }
     }
 
@@ -206,14 +206,14 @@ public class PlayerDataManager {
         return true;
     }
 
-    /** 获取玩家语言（未注册玩家返回会话内记录，默认中文） */
+    /** 获取玩家语言（未注册玩家返回会话内记录，默认使用配置的默认语言） */
     public String getLanguage(String username) {
         String key = username.toLowerCase();
         String mem = playerLanguages.get(key);
         if (mem != null) return mem;
         PlayerEntry entry = players.get(key);
         if (entry != null && entry.language != null) return entry.language;
-        return I18n.DEFAULT_LANG;
+        return I18n.getDefaultLang();
     }
 
     /** 设置玩家语言：已注册玩家持久化，未注册玩家仅会话内有效 */
@@ -308,7 +308,7 @@ public class PlayerDataManager {
                         changed = true;
                     }
                     if (entry.language == null || !I18n.isValid(entry.language)) {
-                        entry.language = I18n.DEFAULT_LANG;
+                        entry.language = I18n.getDefaultLang();
                         changed = true;
                     }
                     if (changed) updated++;

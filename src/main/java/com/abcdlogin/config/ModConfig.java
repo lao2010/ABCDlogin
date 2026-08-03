@@ -23,6 +23,9 @@ public class ModConfig {
     public static final Config DATA;
 
     public static class Config {
+        // ── 常规 ──
+        public final ModConfigSpec.ConfigValue<String> defaultLanguage;
+
         // ── 邮箱验证服务 ──
         public final ModConfigSpec.ConfigValue<String> emailRecipient;
         public final ModConfigSpec.ConfigValue<String> emailApiUrl;
@@ -35,7 +38,15 @@ public class ModConfig {
         public final ModConfigSpec.ConfigValue<Integer> pollTimeoutMs;
         public final ModConfigSpec.ConfigValue<Integer> codeExpiryMs;
 
-        Config(ModConfigSpec.Builder builder) {
+        Config(ModConfigSpec.Builder builder, String detectedLanguage) {
+            builder.push("general");
+            defaultLanguage = builder
+                .comment("默认语言 (zh_cn / en_us)",
+                         "新玩家与未设置语言的玩家使用此语言",
+                         "首次生成配置时自动检测服务器语言: 服务器语言非中文则默认英文")
+                .define("defaultLanguage", detectedLanguage);
+            builder.pop();
+
             builder.push("email");
             emailRecipient = builder
                 .comment("玩家发送验证码的目标邮箱地址（填写到邮件主题）",
@@ -73,9 +84,45 @@ public class ModConfig {
     }
 
     static {
-        Pair<Config, ModConfigSpec> pair = new ModConfigSpec.Builder().configure(Config::new);
+        // 首次创建配置时检测服务器语言: 服务器语言非中文 -> 默认英文
+        String detectedLanguage = detectServerLanguage();
+        Pair<Config, ModConfigSpec> pair = new ModConfigSpec.Builder().configure(builder -> new Config(builder, detectedLanguage));
         DATA = pair.getLeft();
         SPEC = pair.getRight();
+    }
+
+    /**
+     * 检测服务器语言 (server.properties 的 language 键):
+     * - 服务器语言以 zh 开头 -> zh_cn
+     * - 服务器语言非中文（如 en_us / de_de 等）-> en_us
+     * - 未设置 language 键 -> zh_cn
+     */
+    private static String detectServerLanguage() {
+        try {
+            java.nio.file.Path serverProps = FMLPaths.GAMEDIR.get().resolve("server.properties");
+            if (java.nio.file.Files.exists(serverProps)) {
+                for (String rawLine : java.nio.file.Files.readAllLines(serverProps)) {
+                    String line = rawLine.trim();
+                    if (line.startsWith("language=")) {
+                        String lang = line.substring("language=".length()).trim().toLowerCase();
+                        if (lang.startsWith("zh")) {
+                            ABCDlogin.LOGGER.info("[ABCDlogin] 检测到服务器语言为中文 ({}), 默认语言: zh_cn", lang);
+                            return "zh_cn";
+                        }
+                        if (!lang.isEmpty()) {
+                            ABCDlogin.LOGGER.info("[ABCDlogin] 服务器语言为 {} (非中文), 默认语言: en_us", lang);
+                            return "en_us";
+                        }
+                    }
+                }
+                ABCDlogin.LOGGER.info("[ABCDlogin] server.properties 未设置 language，默认语言: zh_cn");
+            } else {
+                ABCDlogin.LOGGER.info("[ABCDlogin] 未找到 server.properties，默认语言: zh_cn");
+            }
+        } catch (Exception e) {
+            ABCDlogin.LOGGER.warn("[ABCDlogin] 读取服务器语言失败: {}", e.getMessage());
+        }
+        return "zh_cn";
     }
 
     public static void init(ModContainer container) {
