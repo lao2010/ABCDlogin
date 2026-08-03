@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.abcdlogin.ABCDlogin;
+import com.abcdlogin.I18n;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -43,7 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PlayerDataManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     /** 当前数据库结构版本 */
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
     /** 加密安全的随机数生成器（验证码不可预测） */
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -51,6 +52,8 @@ public class PlayerDataManager {
     private final Map<String, PlayerEntry> players = new ConcurrentHashMap<>();
     private final Set<String> loggedInPlayers = ConcurrentHashMap.newKeySet();
     private final Map<String, String> pendingVerificationCodes = new ConcurrentHashMap<>();
+    /** 语言偏好（已注册玩家持久化；未注册玩家仅会话内有效） */
+    private final Map<String, String> playerLanguages = new ConcurrentHashMap<>();
 
     public static class PlayerEntry {
         public String passwordHash;
@@ -60,9 +63,12 @@ public class PlayerDataManager {
         public long lastLoginAt;
         /** v2 新增：最近一次登录 IP */
         public String lastLoginIp;
+        /** v3 新增：玩家语言偏好 (zh_cn / en_us) */
+        public String language;
 
         public PlayerEntry() {
             this.lastLoginIp = "";
+            this.language = I18n.DEFAULT_LANG;
         }
 
         public PlayerEntry(String passwordHash) {
@@ -72,6 +78,7 @@ public class PlayerDataManager {
             this.registeredAt = System.currentTimeMillis();
             this.lastLoginAt = 0;
             this.lastLoginIp = "";
+            this.language = I18n.DEFAULT_LANG;
         }
     }
 
@@ -199,6 +206,29 @@ public class PlayerDataManager {
         return true;
     }
 
+    /** 获取玩家语言（未注册玩家返回会话内记录，默认中文） */
+    public String getLanguage(String username) {
+        String key = username.toLowerCase();
+        String mem = playerLanguages.get(key);
+        if (mem != null) return mem;
+        PlayerEntry entry = players.get(key);
+        if (entry != null && entry.language != null) return entry.language;
+        return I18n.DEFAULT_LANG;
+    }
+
+    /** 设置玩家语言：已注册玩家持久化，未注册玩家仅会话内有效 */
+    public void setLanguage(String username, String lang) {
+        String key = username.toLowerCase();
+        String normalized = I18n.normalize(lang);
+        playerLanguages.put(key, normalized);
+        PlayerEntry entry = players.get(key);
+        if (entry != null) {
+            entry.language = normalized;
+            save();
+        }
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 语言已切换为 {}", username, normalized);
+    }
+
     public String getEmail(String username) {
         String key = username.toLowerCase();
         PlayerEntry entry = players.get(key);
@@ -268,11 +298,20 @@ public class PlayerDataManager {
 
                 int updated = 0;
                 for (PlayerEntry entry : data.players.values()) {
+                    boolean changed = false;
                     if (entry.lastLoginIp == null) {
                         entry.lastLoginIp = "";
-                        updated++;
+                        changed = true;
                     }
-                    if (entry.email == null) entry.email = "";
+                    if (entry.email == null) {
+                        entry.email = "";
+                        changed = true;
+                    }
+                    if (entry.language == null || !I18n.isValid(entry.language)) {
+                        entry.language = I18n.DEFAULT_LANG;
+                        changed = true;
+                    }
+                    if (changed) updated++;
                 }
                 data.schemaVersion = SCHEMA_VERSION;
                 players.putAll(data.players);

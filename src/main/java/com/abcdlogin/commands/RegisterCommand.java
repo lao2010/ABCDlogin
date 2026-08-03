@@ -6,6 +6,7 @@
 package com.abcdlogin.commands;
 
 import com.abcdlogin.ABCDlogin;
+import com.abcdlogin.I18n;
 import com.abcdlogin.data.PlayerDataManager;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -25,7 +26,7 @@ public class RegisterCommand {
                     .executes(ctx -> {
                         CommandSourceStack source = ctx.getSource();
                         if (!(source.getEntity() instanceof ServerPlayer player)) {
-                            source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                            source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                             return 0;
                         }
 
@@ -35,17 +36,17 @@ public class RegisterCommand {
                         PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (dm.isRegistered(username)) {
-                            player.sendSystemMessage(Component.literal("§c你已经注册过了！请使用 /login <密码> 登录"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "register.alreadyRegistered")));
                             return 0;
                         }
 
                         if (password.length() < 4) {
-                            player.sendSystemMessage(Component.literal("§c密码长度不能少于4位"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "register.passwordTooShort")));
                             return 0;
                         }
 
                         if (!password.equals(confirm)) {
-                            player.sendSystemMessage(Component.literal("§c两次输入的密码不一致"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "register.passwordMismatch")));
                             return 0;
                         }
 
@@ -53,8 +54,8 @@ public class RegisterCommand {
                         dm.setLoggedIn(username, true);
                         dm.recordLogin(username, ABCDlogin.getPlayerIp(player));
                         ABCDlogin.finishLogin(player);
-                        player.sendSystemMessage(Component.literal("§a注册成功！已自动登录"));
-                        player.sendSystemMessage(Component.literal("§e提示：建议使用 /email bind <邮箱> 绑定邮箱，以便使用验证码登录和找回密码"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "register.success")));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "register.bindReminder")));
                         return 1;
                     })
                 )

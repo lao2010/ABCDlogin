@@ -6,6 +6,7 @@
 package com.abcdlogin;
 
 import com.abcdlogin.commands.EmailCommand;
+import com.abcdlogin.commands.LanguageCommand;
 import com.abcdlogin.commands.LoginCommand;
 import com.abcdlogin.commands.RegisterCommand;
 import com.abcdlogin.data.PlayerDataManager;
@@ -32,6 +33,7 @@ public class EventHandler {
         ALLOWED_COMMANDS.add("login");
         ALLOWED_COMMANDS.add("register");
         ALLOWED_COMMANDS.add("email");
+        ALLOWED_COMMANDS.add("language");
         ALLOWED_COMMANDS.add("l");
         ALLOWED_COMMANDS.add("reg");
     }
@@ -49,6 +51,7 @@ public class EventHandler {
         LoginCommand.register(event);
         RegisterCommand.register(event);
         EmailCommand.register(event);
+        LanguageCommand.register(event);
     }
 
     //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -67,22 +70,22 @@ public class EventHandler {
         ABCDlogin.prepareForLogin(player);
 
         if (dm.isRegistered(username)) {
-            player.sendSystemMessage(Component.literal("§6========== 登录验证 =========="));
-            player.sendSystemMessage(Component.literal("§e请使用 §f/login <密码> §e登录"));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "join.title")));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "join.loginPrompt")));
             if (dm.isEmailBound(username)) {
-                player.sendSystemMessage(Component.literal("§e或使用 §f/email verify §e获取验证码"));
-                player.sendSystemMessage(Component.literal("§e将验证码填写到邮件主题，发送到 " + com.abcdlogin.config.ModConfig.recipientDisplay()));
-                player.sendSystemMessage(Component.literal("§a服务器检测到验证码后将自动放行，无需其他操作"));
+                player.sendSystemMessage(Component.literal(I18n.t(player, "join.emailOption1")));
+                player.sendSystemMessage(Component.literal(I18n.t(player, "join.emailOption2", com.abcdlogin.config.ModConfig.recipientDisplay())));
+                player.sendSystemMessage(Component.literal(I18n.t(player, "join.emailOption3")));
             }
             player.sendSystemMessage(Component.literal("§6================================"));
         } else {
-            player.sendSystemMessage(Component.literal("§6========== 欢迎来到服务器 =========="));
-            player.sendSystemMessage(Component.literal("§e你还没有注册！"));
-            player.sendSystemMessage(Component.literal("§e请使用 §f/register <密码> <确认密码> §e注册"));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "join.registerTitle")));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "register.notRegistered")));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "join.registerPrompt")));
             player.sendSystemMessage(Component.literal("§6===================================="));
         }
 
-        player.sendSystemMessage(Component.literal("§c注意：未登录状态下你位于登录等待区（旁观者视角，看不到装备与状态），无法移动、破坏方块和发言！"));
+        player.sendSystemMessage(Component.literal(I18n.t(player, "join.warning")));
     }
 
     @SubscribeEvent
@@ -119,7 +122,7 @@ public class EventHandler {
         if (!(event.getPlayer() instanceof ServerPlayer player)) return;
         if (!isLoggedIn(player)) {
             event.setCanceled(true);
-            player.sendSystemMessage(Component.literal("§c请先登录！使用 /login <密码>"));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "blocked.loginFirst")));
         }
     }
 
@@ -128,7 +131,7 @@ public class EventHandler {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (!isLoggedIn(player)) {
             event.setCanceled(true);
-            player.sendSystemMessage(Component.literal("§c请先登录！使用 /login <密码>"));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "blocked.loginFirst")));
         }
     }
 
@@ -181,7 +184,7 @@ public class EventHandler {
         ServerPlayer player = event.getPlayer();
         if (!isLoggedIn(player)) {
             event.setCanceled(true);
-            player.sendSystemMessage(Component.literal("§c请先登录后再发言！使用 /login <密码>"));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "blocked.chat")));
         }
     }
 
@@ -204,7 +207,7 @@ public class EventHandler {
 
         if (!ALLOWED_COMMANDS.contains(commandName.toLowerCase())) {
             event.setCanceled(true);
-            player.sendSystemMessage(Component.literal("§c未登录状态下只能使用: /login, /register, /email 命令"));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "blocked.commands")));
         }
     }
 }

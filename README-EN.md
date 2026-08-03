@@ -1,8 +1,8 @@
-# LoginMod - NeoForge 1.21.1 Login Authentication Mod
+# ABCDlogin - NeoForge 1.21.1 Login Authentication Mod
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Minecraft server login authentication mod based on **NeoForge 21.1.235 (MC 1.21.1)**.
+A Minecraft server login authentication mod (formerly LoginMod) based on **NeoForge 21.1.235 (MC 1.21.1)**.
 
 ## Features
 
@@ -12,7 +12,8 @@ A Minecraft server login authentication mod based on **NeoForge 21.1.235 (MC 1.2
 - **Forgot Password** - `/email forgot <new password> <confirm password>`; after email verification passes, the password is automatically reset and access is granted
 - **Email Binding/Unbinding** - `/email bind <email>` / `/email unbind confirm`
 - **Email Validity Check** - Logged-in players can use `/email verify` to run an email verification check and confirm whether the binding is valid
-- **Login Waiting Area** - Players who are not logged in are teleported to the waiting area above the spawn point, where **only the surrounding 1 block is visible** (the grass block under their feet + the Void). They cannot move, destroy, place, interact, attack, pick up items, speak, or use other commands
+- **Multi-language** - Built-in Simplified Chinese / English, switch with `/language`, language preference is saved automatically
+- **Login Waiting Area** - Players who are not logged in are teleported to the waiting area above the spawn point (spectator view), where **only the surrounding 1 block is visible** (the grass block under their feet + the Void), with no inventory or HUD. They cannot move, destroy, place, interact, attack, pick up items, speak, or use other commands
 - **Automatic Migration of Old Databases** - Detects the old version of `loginmod_players.json`, automatically fills in fields, and upgrades it
 - **Detailed Logs** - Logs all operations, including registration, login, verification codes, and teleportation
 
@@ -28,6 +29,14 @@ A Minecraft server login authentication mod based on **NeoForge 21.1.235 (MC 1.2
 | `/email forgot <new password> <confirm password>` | Forgot Password (reset after email verification) |
 | `/email unbind [confirm]` | Unbind Email (requires “confirm” to confirm) |
 | `/email status` | View Email Binding Status |
+| `/language [zh_cn\|en_us]` | Switch language (saved automatically, also available while not logged in) |
+
+## Multi-language
+
+- Two complete interfaces: **Simplified Chinese (zh_cn)** and **English (en_us)**
+- Use `/language` to view the current language, `/language en_us` to switch to English
+- Language preference is **saved automatically**: persisted for registered players and restored on next join
+- Players in the waiting area can also switch language (allowed command while not logged in)
 
 ## Email Verification Process
 

@@ -6,7 +6,10 @@
 package com.abcdlogin.commands;
 
 import com.abcdlogin.ABCDlogin;
+import com.abcdlogin.I18n;
+import com.abcdlogin.config.ModConfig;
 import com.abcdlogin.data.PlayerDataManager;
+import com.abcdlogin.network.EmailClient;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
@@ -30,7 +33,7 @@ public class LoginCommand {
                 .executes(ctx -> {
                     CommandSourceStack source = ctx.getSource();
                     if (!(source.getEntity() instanceof ServerPlayer player)) {
-                        source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                        source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                         return 0;
                     }
 
@@ -39,25 +42,25 @@ public class LoginCommand {
                     PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                     if (dm.isLoggedIn(username)) {
-                        player.sendSystemMessage(Component.literal("§a你已经登录了"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.alreadyLoggedIn")));
                         return 1;
                     }
 
                     if (!dm.isRegistered(username)) {
-                        player.sendSystemMessage(Component.literal("§c你还没有注册！请使用 /register <密码> <确认密码> 注册"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.notRegistered")));
                         return 0;
                     }
 
                     if (dm.login(username, password)) {
                         dm.recordLogin(username, ABCDlogin.getPlayerIp(player));
                         ABCDlogin.finishLogin(player);
-                        player.sendSystemMessage(Component.literal("§a登录成功！欢迎回来"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.success")));
                         if (!dm.isEmailBound(username)) {
-                            player.sendSystemMessage(Component.literal("§e提示：建议绑定邮箱以增强账户安全，使用 /email bind <邮箱>"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "login.bindReminder")));
                         }
                         return 1;
                     } else {
-                        player.sendSystemMessage(Component.literal("§c密码错误！"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.wrongPassword")));
                         return 0;
                     }
                 })
@@ -68,7 +71,7 @@ public class LoginCommand {
                     .executes(ctx -> {
                         CommandSourceStack source = ctx.getSource();
                         if (!(source.getEntity() instanceof ServerPlayer player)) {
-                            source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                            source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                             return 0;
                         }
 
@@ -77,42 +80,42 @@ public class LoginCommand {
                         PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (dm.isLoggedIn(username)) {
-                            player.sendSystemMessage(Component.literal("§a你已经登录了"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "login.alreadyLoggedIn")));
                             return 1;
                         }
 
                         if (!dm.isRegistered(username)) {
-                            player.sendSystemMessage(Component.literal("§c你还没有注册！请使用 /register <密码> <确认密码> 注册"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "login.notRegistered")));
                             return 0;
                         }
 
                         if (!dm.isEmailBound(username)) {
-                            player.sendSystemMessage(Component.literal("§c你没有绑定邮箱，无法使用验证码登录！请先使用 /email bind <邮箱>"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "login.notBound")));
                             return 0;
                         }
 
                         String email = dm.getEmail(username);
                         if (email == null || email.isEmpty()) {
-                            player.sendSystemMessage(Component.literal("§c邮箱未绑定"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "login.notBound")));
                             return 0;
                         }
 
                         // 立即查询一次
-                        player.sendSystemMessage(Component.literal("§7正在验证验证码，请稍候..."));
-                        boolean verified = com.abcdlogin.network.EmailClient.checkVerificationCode(email, code);
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.codeChecking")));
+                        boolean verified = EmailClient.checkVerificationCode(email, code);
 
                         if (verified) {
                             dm.setLoggedIn(username, true);
                             dm.recordLogin(username, ABCDlogin.getPlayerIp(player));
                             ABCDlogin.finishLogin(player);
-                            player.sendSystemMessage(Component.literal("§a验证码验证成功！已登录"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "login.codeSuccess")));
                             return 1;
                         }
 
                         // 未找到：邮件可能还在传输中，持续检测验证码列表
                         // (邮件服务器列表会自动删除过期内容，我们只需持续查询)
-                        player.sendSystemMessage(Component.literal("§7验证码尚未到达，开始持续检测（最长60秒，每5秒查询一次）..."));
-                        player.sendSystemMessage(Component.literal("§a提示：如果已通过 /email verify 获取验证码，发送邮件后服务器会自动放行，无需再输入此命令"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.codePending")));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.codeHint")));
                         startCodePolling(player, username, email, code);
                         return 1;
                     })
@@ -135,7 +138,7 @@ public class LoginCommand {
                     return;
                 }
 
-                boolean ok = com.abcdlogin.network.EmailClient.checkVerificationCode(email, code);
+                boolean ok = EmailClient.checkVerificationCode(email, code);
                 if (ok) {
                     final ServerPlayer p = player;
                     p.server.execute(() -> {
@@ -145,7 +148,7 @@ public class LoginCommand {
                         dm.setLoggedIn(username, true);
                         dm.recordLogin(username, ABCDlogin.getPlayerIp(p));
                         ABCDlogin.finishLogin(p);
-                        p.sendSystemMessage(Component.literal("§a验证码验证成功！已登录"));
+                        p.sendSystemMessage(Component.literal(I18n.t(p, "login.codeSuccess")));
                     });
                     return;
                 }
@@ -153,7 +156,8 @@ public class LoginCommand {
             // 超时
             player.server.execute(() -> {
                 if (!player.hasDisconnected()) {
-                    player.sendSystemMessage(Component.literal("§c验证码检测超时（60秒）。请确认已将验证码填写到邮件主题并发送到 " + com.abcdlogin.config.ModConfig.recipientDisplay() + " 后重试"));
+                    player.sendSystemMessage(Component.literal(
+                        I18n.t(player, "login.codeTimeout", ModConfig.recipientDisplay())));
                 }
             });
         });

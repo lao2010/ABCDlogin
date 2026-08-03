@@ -4,7 +4,7 @@ license = "MIT"
 
 [[mods]]
 modId = "abcdlogin"
-version = "1.6.0"
+version = "1.7.0"
 displayName = "ABCDlogin"
 description = '''ABCDlogin 登录验证模组
 - 密码登录 / 注册 / 邮箱绑定

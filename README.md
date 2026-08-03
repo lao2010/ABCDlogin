@@ -12,6 +12,7 @@ Minecraft 服务器登录验证模组（原 LoginMod），基于 **NeoForge 21.1
 - **忘记密码** - `/email forgot <新密码> <确认密码>`，邮箱验证通过后自动重置密码并放行
 - **邮箱绑定/解绑** - `/email bind <邮箱>` / `/email unbind confirm`
 - **邮箱有效性验证** - 已登录玩家用 `/email verify` 跑一遍邮箱验证，确认绑定是否有效
+- **多语言** - 内置简体中文/English，`/language` 切换，自动记录玩家语言偏好
 - **登录等待区** - 未登录玩家传送至出生点上方等待区（旁观者视角），**只显示周围 1 个区块**，看不到装备与状态栏，无法移动/破坏/放置/交互/攻击/拾取/发言/使用其他命令
 - **自动迁移** - 自动迁移旧版 LoginMod 的配置与玩家数据库（`loginmod_players.json` / `loginmod-server.toml`）
 - **详细日志** - 注册、登录、验证码、传送等全部操作记录日志
@@ -28,6 +29,14 @@ Minecraft 服务器登录验证模组（原 LoginMod），基于 **NeoForge 21.1
 | `/email forgot <新密码> <确认密码>` | 忘记密码（邮箱验证通过后重置） |
 | `/email unbind [confirm]` | 解绑邮箱（需 confirm 确认） |
 | `/email status` | 查看邮箱绑定状态 |
+| `/language [zh_cn\|en_us]` | 切换语言（自动记录，未登录也可用） |
+
+## 多语言
+
+- 内置 **简体中文 (zh_cn)** 与 **English (en_us)** 两套完整界面
+- 使用 `/language` 查看当前语言，`/language en_us` 切换为英文
+- 语言偏好**自动记录**：已注册玩家持久化保存，下次加入自动使用上次选择的语言
+- 未登录玩家在等待区也可以切换语言（命令白名单已包含 /language）
 
 ## 邮箱验证流程
 

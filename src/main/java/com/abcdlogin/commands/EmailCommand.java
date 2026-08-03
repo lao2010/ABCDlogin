@@ -6,8 +6,10 @@
 package com.abcdlogin.commands;
 
 import com.abcdlogin.ABCDlogin;
+import com.abcdlogin.I18n;
 import com.abcdlogin.config.ModConfig;
 import com.abcdlogin.data.PlayerDataManager;
+import com.abcdlogin.network.EmailClient;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
@@ -32,7 +34,7 @@ public class EmailCommand {
                     .executes(ctx -> {
                         CommandSourceStack source = ctx.getSource();
                         if (!(source.getEntity() instanceof ServerPlayer player)) {
-                            source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                            source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                             return 0;
                         }
 
@@ -41,21 +43,21 @@ public class EmailCommand {
                         PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (!dm.isRegistered(username)) {
-                            player.sendSystemMessage(Component.literal("§c请先使用 /register <密码> <确认密码> 注册"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.bind.notRegistered")));
                             return 0;
                         }
 
                         if (!EMAIL_PATTERN.matcher(email).matches()) {
-                            player.sendSystemMessage(Component.literal("§c邮箱格式不正确"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.bind.badFormat")));
                             return 0;
                         }
 
                         if (dm.bindEmail(username, email)) {
-                            player.sendSystemMessage(Component.literal("§a邮箱绑定成功！"));
-                            player.sendSystemMessage(Component.literal("§e建议使用 §f/email verify §e验证邮箱是否可用"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.bind.success")));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.bind.verifyReminder")));
                             return 1;
                         } else {
-                            player.sendSystemMessage(Component.literal("§c绑定失败，请先注册"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.bind.fail")));
                             return 0;
                         }
                     })
@@ -67,7 +69,7 @@ public class EmailCommand {
                     .executes(ctx -> {
                         CommandSourceStack source = ctx.getSource();
                         if (!(source.getEntity() instanceof ServerPlayer player)) {
-                            source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                            source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                             return 0;
                         }
 
@@ -75,10 +77,10 @@ public class EmailCommand {
                         PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (dm.unbindEmail(username)) {
-                            player.sendSystemMessage(Component.literal("§a邮箱已解绑"));
-                            player.sendSystemMessage(Component.literal("§e如需重新绑定，使用 /email bind <邮箱>"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.unbind.success")));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.unbind.rebindHint")));
                         } else {
-                            player.sendSystemMessage(Component.literal("§c解绑失败：你还没有绑定邮箱"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.unbind.fail")));
                         }
                         return 1;
                     })
@@ -86,11 +88,11 @@ public class EmailCommand {
                 .executes(ctx -> {
                     CommandSourceStack source = ctx.getSource();
                     if (!(source.getEntity() instanceof ServerPlayer player)) {
-                        source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                        source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                         return 0;
                     }
-                    player.sendSystemMessage(Component.literal("§c解绑邮箱将无法使用验证码登录和找回密码！"));
-                    player.sendSystemMessage(Component.literal("§e如确认解绑，请使用 §f/email unbind confirm"));
+                    player.sendSystemMessage(Component.literal(I18n.t(player, "email.unbind.warn")));
+                    player.sendSystemMessage(Component.literal(I18n.t(player, "email.unbind.confirmPrompt")));
                     return 1;
                 })
             )
@@ -99,7 +101,7 @@ public class EmailCommand {
                 .executes(ctx -> {
                     CommandSourceStack source = ctx.getSource();
                     if (!(source.getEntity() instanceof ServerPlayer player)) {
-                        source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                        source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                         return 0;
                     }
 
@@ -107,29 +109,30 @@ public class EmailCommand {
                     PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                     if (!dm.isRegistered(username)) {
-                        player.sendSystemMessage(Component.literal("§c请先注册"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.notRegistered")));
                         return 0;
                     }
 
                     if (!dm.isEmailBound(username)) {
-                        player.sendSystemMessage(Component.literal("§c请先使用 /email bind <邮箱> 绑定邮箱"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.notBound")));
                         return 0;
                     }
 
                     String code = dm.generateVerificationCode(username);
                     String email = dm.getEmail(username);
                     boolean loggedIn = dm.isLoggedIn(username);
+                    int expiryMin = ModConfig.DATA.codeExpiryMs.get() / 60000;
 
-                    player.sendSystemMessage(Component.literal("§6========== 邮箱验证 =========="));
-                    player.sendSystemMessage(Component.literal("§e您的验证码: §f§l" + code));
-                    player.sendSystemMessage(Component.literal("§7请将验证码填写到邮件【主题】"));
-                    player.sendSystemMessage(Component.literal("§7发送到: §f" + ModConfig.recipientDisplay()));
+                    player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.title")));
+                    player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.code", code)));
+                    player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.subject")));
+                    player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.sendTo", ModConfig.recipientDisplay())));
                     if (loggedIn) {
-                        player.sendSystemMessage(Component.literal("§a发送后服务器将自动验证邮箱绑定是否有效"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.loggedInNote")));
                     } else {
-                        player.sendSystemMessage(Component.literal("§a发送后无需任何操作，服务器将自动检测验证码并放行登录！"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.autoLoginNote")));
                     }
-                    player.sendSystemMessage(Component.literal("§c验证码有效期: " + (ModConfig.DATA.codeExpiryMs.get() / 60000) + " 分钟"));
+                    player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.expiry", expiryMin)));
                     player.sendSystemMessage(Component.literal("§6================================="));
 
                     // 启动自动检测：验证码到达后根据场景处理（登录放行 / 邮箱有效性验证）
@@ -158,7 +161,7 @@ public class EmailCommand {
                         .executes(ctx -> {
                             CommandSourceStack source = ctx.getSource();
                             if (!(source.getEntity() instanceof ServerPlayer player)) {
-                                source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                                source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                                 return 0;
                             }
 
@@ -168,35 +171,36 @@ public class EmailCommand {
                             PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                             if (!dm.isRegistered(username)) {
-                                player.sendSystemMessage(Component.literal("§c你还没有注册"));
+                                player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.notRegistered")));
                                 return 0;
                             }
 
                             if (!dm.isEmailBound(username)) {
-                                player.sendSystemMessage(Component.literal("§c你没有绑定邮箱，无法使用忘记密码功能！"));
-                                player.sendSystemMessage(Component.literal("§e请先使用 /email bind <邮箱> 绑定邮箱"));
+                                player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.notBound")));
+                                player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.bindHint")));
                                 return 0;
                             }
 
                             if (newPassword.length() < 4) {
-                                player.sendSystemMessage(Component.literal("§c密码长度不能少于4位"));
+                                player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.tooShort")));
                                 return 0;
                             }
 
                             if (!newPassword.equals(confirm)) {
-                                player.sendSystemMessage(Component.literal("§c两次输入的密码不一致"));
+                                player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.mismatch")));
                                 return 0;
                             }
 
                             String code = dm.generateVerificationCode(username);
                             String email = dm.getEmail(username);
+                            int expiryMin = ModConfig.DATA.codeExpiryMs.get() / 60000;
 
-                            player.sendSystemMessage(Component.literal("§6========== 忘记密码 =========="));
-                            player.sendSystemMessage(Component.literal("§e您的验证码: §f§l" + code));
-                            player.sendSystemMessage(Component.literal("§7请将验证码填写到邮件【主题】"));
-                            player.sendSystemMessage(Component.literal("§7发送到: §f" + ModConfig.recipientDisplay()));
-                            player.sendSystemMessage(Component.literal("§a验证通过后将自动重置密码为: §f" + newPassword));
-                            player.sendSystemMessage(Component.literal("§c验证码有效期: " + (ModConfig.DATA.codeExpiryMs.get() / 60000) + " 分钟"));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.title")));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.code", code)));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.subject")));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.sendTo", ModConfig.recipientDisplay())));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.willReset", newPassword)));
+                            player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.expiry", expiryMin)));
                             player.sendSystemMessage(Component.literal("§6================================="));
 
                             startForgetPassword(player, username, email, code, newPassword);
@@ -224,7 +228,7 @@ public class EmailCommand {
                 .executes(ctx -> {
                     CommandSourceStack source = ctx.getSource();
                     if (!(source.getEntity() instanceof ServerPlayer player)) {
-                        source.sendFailure(Component.literal("§c此命令只能由玩家使用"));
+                        source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
                         return 0;
                     }
 
@@ -232,19 +236,19 @@ public class EmailCommand {
                     PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                     if (!dm.isRegistered(username)) {
-                        player.sendSystemMessage(Component.literal("§c你还没有注册"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.status.notRegistered")));
                         return 0;
                     }
 
                     String email = dm.getEmail(username);
                     boolean bound = dm.isEmailBound(username);
                     if (bound) {
-                        player.sendSystemMessage(Component.literal("§a邮箱: " + email + " (已绑定)"));
-                        player.sendSystemMessage(Component.literal("§e使用 /email verify 可验证邮箱是否有效"));
-                        player.sendSystemMessage(Component.literal("§e使用 /email unbind confirm 可解绑"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.status.bound", email)));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.status.verifyHint")));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.status.unbindHint")));
                     } else {
-                        player.sendSystemMessage(Component.literal("§c尚未绑定邮箱"));
-                        player.sendSystemMessage(Component.literal("§e使用 /email bind <邮箱> 绑定"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.status.notBound")));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.status.bindHint")));
                     }
                     return 1;
                 })
@@ -278,7 +282,7 @@ public class EmailCommand {
 
                 if (player.hasDisconnected()) return;
 
-                boolean ok = com.abcdlogin.network.EmailClient.checkVerificationCode(email, code);
+                boolean ok = EmailClient.checkVerificationCode(email, code);
                 if (ok) {
                     final ServerPlayer p = player;
                     p.server.execute(() -> {
@@ -287,7 +291,7 @@ public class EmailCommand {
 
                         if (loggedInAtStart) {
                             // 已登录玩家：仅验证邮箱有效性
-                            p.sendSystemMessage(Component.literal("§a邮箱验证成功！邮箱绑定有效"));
+                            p.sendSystemMessage(Component.literal(I18n.t(p, "email.verify.success")));
                             ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 邮箱有效性验证通过 (邮箱: {})", username, email);
                         } else {
                             // 未登录玩家：自动放行
@@ -295,7 +299,7 @@ public class EmailCommand {
                             dm.setLoggedIn(username, true);
                             dm.recordLogin(username, ABCDlogin.getPlayerIp(p));
                             ABCDlogin.finishLogin(p);
-                            p.sendSystemMessage(Component.literal("§a验证码验证成功！已自动放行，欢迎回来"));
+                            p.sendSystemMessage(Component.literal(I18n.t(p, "email.verify.autoLoginSuccess")));
                             ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 验证码自动放行成功 (邮箱: {})", username, email);
                         }
                     });
@@ -306,9 +310,9 @@ public class EmailCommand {
             player.server.execute(() -> {
                 if (!player.hasDisconnected()) {
                     if (loggedInAtStart) {
-                        player.sendSystemMessage(Component.literal("§c邮箱验证超时，未检测到验证码。请确认邮件已发送后重试"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.timeoutLoggedIn")));
                     } else {
-                        player.sendSystemMessage(Component.literal("§c验证码检测超时，验证码已过期。请重新使用 /email verify 获取新验证码"));
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "email.verify.timeout")));
                     }
                 }
             });
@@ -340,7 +344,7 @@ public class EmailCommand {
 
                 if (player.hasDisconnected()) return;
 
-                boolean ok = com.abcdlogin.network.EmailClient.checkVerificationCode(email, code);
+                boolean ok = EmailClient.checkVerificationCode(email, code);
                 if (ok) {
                     final ServerPlayer p = player;
                     p.server.execute(() -> {
@@ -348,19 +352,19 @@ public class EmailCommand {
                         PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (!dm.changePassword(username, newPassword)) {
-                            p.sendSystemMessage(Component.literal("§c密码重置失败，请重试"));
+                            p.sendSystemMessage(Component.literal(I18n.t(p, "email.forgot.fail")));
                             return;
                         }
-                        p.sendSystemMessage(Component.literal("§a邮箱验证通过！密码已重置"));
+                        p.sendSystemMessage(Component.literal(I18n.t(p, "email.forgot.success")));
 
                         if (!dm.isLoggedIn(username)) {
                             // 未登录：自动放行
                             dm.setLoggedIn(username, true);
                             dm.recordLogin(username, ABCDlogin.getPlayerIp(p));
                             ABCDlogin.finishLogin(p);
-                            p.sendSystemMessage(Component.literal("§a已自动登录，欢迎回来"));
+                            p.sendSystemMessage(Component.literal(I18n.t(p, "email.forgot.autoLogin")));
                         } else {
-                            p.sendSystemMessage(Component.literal("§e下次登录请使用新密码"));
+                            p.sendSystemMessage(Component.literal(I18n.t(p, "email.forgot.nextTime")));
                         }
                         ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 忘记密码流程完成，密码已重置", username);
                     });
@@ -370,7 +374,7 @@ public class EmailCommand {
             // 超时
             player.server.execute(() -> {
                 if (!player.hasDisconnected()) {
-                    player.sendSystemMessage(Component.literal("§c验证码检测超时，密码未修改。请重新使用 /email forgot <新密码> <确认密码>"));
+                    player.sendSystemMessage(Component.literal(I18n.t(player, "email.forgot.timeout")));
                 }
             });
             ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 忘记密码流程超时", username);
