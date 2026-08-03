@@ -145,6 +145,29 @@ public class PlayerDataManager {
         return true;
     }
 
+    /** 解绑邮箱 */
+    public boolean unbindEmail(String username) {
+        String key = username.toLowerCase();
+        PlayerEntry entry = players.get(key);
+        if (entry == null || !entry.emailBound) return false;
+        entry.email = "";
+        entry.emailBound = false;
+        save();
+        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 已解绑邮箱", username);
+        return true;
+    }
+
+    /** 修改密码（忘记密码/邮箱验证后重置） */
+    public boolean changePassword(String username, String newPassword) {
+        String key = username.toLowerCase();
+        PlayerEntry entry = players.get(key);
+        if (entry == null) return false;
+        entry.passwordHash = hashPassword(newPassword);
+        save();
+        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 密码已修改", username);
+        return true;
+    }
+
     public String getEmail(String username) {
         String key = username.toLowerCase();
         PlayerEntry entry = players.get(key);

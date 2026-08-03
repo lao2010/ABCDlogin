@@ -26,9 +26,6 @@ public class LoginMod {
     public static final String MODID = "loginmod";
     public static final Logger LOGGER = LoggerFactory.getLogger(LoginMod.class);
 
-    /** 登录等待区高度偏移：出生点上方多少格 */
-    private static final int WAIT_Y_OFFSET = 300;
-
     /** 保存玩家加入时的真实位置，登录后传送回去 */
     private static final Map<String, PlayerPosition> PENDING_POSITIONS = new ConcurrentHashMap<>();
 
@@ -79,7 +76,8 @@ public class LoginMod {
             }
 
             BlockPos spawn = overworld.getSharedSpawnPos();
-            BlockPos waitPos = spawn.above(WAIT_Y_OFFSET);
+            int offset = ModConfig.DATA.waitYOffset.get();
+            BlockPos waitPos = spawn.above(offset);
             BlockPos grassPos = waitPos.below();
 
             // 放置草方块作为玩家脚下的唯一地形

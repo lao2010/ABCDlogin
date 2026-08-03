@@ -148,7 +148,7 @@ public class LoginCommand {
             // 超时
             player.server.execute(() -> {
                 if (!player.hasDisconnected()) {
-                    player.sendSystemMessage(Component.literal("§c验证码检测超时（60秒）。请确认已将验证码填写到邮件主题并发送到 v@lhjedu.dpdns.org 后重试"));
+                    player.sendSystemMessage(Component.literal("§c验证码检测超时（60秒）。请确认已将验证码填写到邮件主题并发送到 " + com.loginmod.config.ModConfig.recipientDisplay() + " 后重试"));
                 }
             });
         });

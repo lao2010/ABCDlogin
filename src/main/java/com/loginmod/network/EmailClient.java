@@ -3,16 +3,13 @@ package com.loginmod.network;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import com.loginmod.LoginMod;
 import com.loginmod.config.ModConfig;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
 
 public class EmailClient {
 
@@ -20,6 +17,11 @@ public class EmailClient {
         String apiUrl = ModConfig.DATA.emailApiUrl.get();
         String apiPassword = ModConfig.DATA.emailApiPassword.get();
         int timeout = ModConfig.DATA.emailApiTimeout.get();
+
+        if (apiUrl == null || apiUrl.isBlank()) {
+            LoginMod.LOGGER.warn("[LoginMod] 未配置邮箱验证 API 地址 (email.apiUrl)，无法查询验证码");
+            return false;
+        }
 
         try {
             URI uri = new URI(apiUrl);

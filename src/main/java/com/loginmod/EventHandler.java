@@ -66,7 +66,7 @@ public class EventHandler {
             player.sendSystemMessage(Component.literal("§e请使用 §f/login <密码> §e登录"));
             if (dm.isEmailBound(username)) {
                 player.sendSystemMessage(Component.literal("§e或使用 §f/email verify §e获取验证码"));
-                player.sendSystemMessage(Component.literal("§e将验证码填写到邮件主题，发送到 v@lhjedu.dpdns.org"));
+                player.sendSystemMessage(Component.literal("§e将验证码填写到邮件主题，发送到 " + com.loginmod.config.ModConfig.recipientDisplay()));
                 player.sendSystemMessage(Component.literal("§a服务器检测到验证码后将自动放行，无需其他操作"));
             }
             player.sendSystemMessage(Component.literal("§6================================"));
