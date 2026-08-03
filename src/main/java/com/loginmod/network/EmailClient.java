@@ -12,6 +12,8 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 
 public class EmailClient {
+    /** 复用 Gson 实例，避免重复创建 */
+    private static final Gson GSON = new Gson();
 
     public static boolean checkVerificationCode(String email, String code) {
         String apiUrl = ModConfig.DATA.emailApiUrl.get();
@@ -23,9 +25,10 @@ public class EmailClient {
             return false;
         }
 
+        HttpURLConnection conn = null;
         try {
             URI uri = new URI(apiUrl);
-            HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+            conn = (HttpURLConnection) uri.toURL().openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("pwd", apiPassword);
             conn.setConnectTimeout(timeout);
@@ -33,7 +36,7 @@ public class EmailClient {
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
-                System.err.println("[LoginMod] Email API returned code: " + responseCode);
+                LoginMod.LOGGER.warn("[LoginMod] 邮箱验证 API 返回状态码: {}", responseCode);
                 return false;
             }
 
@@ -45,9 +48,8 @@ public class EmailClient {
             }
             reader.close();
 
-            // Parse JSON response
-            Gson gson = new Gson();
-            JsonObject json = gson.fromJson(response.toString(), JsonObject.class);
+            // 解析 JSON 响应
+            JsonObject json = GSON.fromJson(response.toString(), JsonObject.class);
             if (json == null || !json.has("records")) return false;
 
             JsonArray records = json.getAsJsonArray("records");
@@ -64,8 +66,12 @@ public class EmailClient {
             return false;
 
         } catch (Exception e) {
-            System.err.println("[LoginMod] Email API error: " + e.getMessage());
+            LoginMod.LOGGER.warn("[LoginMod] 邮箱验证 API 请求失败: {}", e.getMessage());
             return false;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
         }
     }
 }

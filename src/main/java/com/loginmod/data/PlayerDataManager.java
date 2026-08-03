@@ -10,6 +10,7 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,6 +39,8 @@ public class PlayerDataManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     /** 当前数据库结构版本 */
     private static final int SCHEMA_VERSION = 2;
+    /** 加密安全的随机数生成器（验证码不可预测） */
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final File dataFile;
     private final Map<String, PlayerEntry> players = new ConcurrentHashMap<>();
@@ -181,7 +184,8 @@ public class PlayerDataManager {
     }
 
     public String generateVerificationCode(String username) {
-        String code = String.format("%06d", new Random().nextInt(999999));
+        // 使用 SecureRandom 生成不可预测的验证码
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
         pendingVerificationCodes.put(username.toLowerCase(), code);
         LoginMod.LOGGER.info("[LoginMod] 玩家 {} 已生成验证码 (5分钟有效)", username);
         return code;
