@@ -77,7 +77,7 @@ public class EventHandler {
             player.sendSystemMessage(Component.literal("§6===================================="));
         }
 
-        player.sendSystemMessage(Component.literal("§c注意：未登录状态下你位于登录等待区，只能看到周围1个区块，无法移动、破坏方块和发言！"));
+        player.sendSystemMessage(Component.literal("§c注意：未登录状态下你位于登录等待区（旁观者视角，看不到装备与状态），无法移动、破坏方块和发言！"));
     }
 
     @SubscribeEvent
@@ -100,6 +100,9 @@ public class EventHandler {
         // 清零速度并强制位置同步，玩家无法移动
         player.setDeltaMovement(0, 0, 0);
         player.hurtMarked = true;
+
+        // 旁观者模式下速度控制无效，用锚点拉回防止飘走
+        LoginMod.lockPlayerPosition(player);
     }
 
     //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
