@@ -1,0 +1,14 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "loginmod"
+version = "1.2.0"
+displayName = "LoginMod"
+description = '''登录验证模组 v1.1.0
+- 未登录玩家位于出生点上方登录等待区，脚下仅有草方块
+- 未登录无法移动/破坏/放置/交互/攻击/拾取/发言/使用命令
+- 密码登录 + 验证码登录（持续检测）
+- 验证码填写到邮件主题发送
+- 自动迁移旧版数据库'''

@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# 运行目录
+runs/
+logs/
+run/
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 本地配置
+*.local
+*.zip
+META-INF/

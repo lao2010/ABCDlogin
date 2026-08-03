@@ -1,0 +1,69 @@
+package com.loginmod.network;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
+import com.loginmod.config.ModConfig;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+
+public class EmailClient {
+
+    public static boolean checkVerificationCode(String email, String code) {
+        String apiUrl = ModConfig.DATA.emailApiUrl.get();
+        String apiPassword = ModConfig.DATA.emailApiPassword.get();
+        int timeout = ModConfig.DATA.emailApiTimeout.get();
+
+        try {
+            URI uri = new URI(apiUrl);
+            HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("pwd", apiPassword);
+            conn.setConnectTimeout(timeout);
+            conn.setReadTimeout(timeout);
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                System.err.println("[LoginMod] Email API returned code: " + responseCode);
+                return false;
+            }
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+
+            // Parse JSON response
+            Gson gson = new Gson();
+            JsonObject json = gson.fromJson(response.toString(), JsonObject.class);
+            if (json == null || !json.has("records")) return false;
+
+            JsonArray records = json.getAsJsonArray("records");
+            for (int i = 0; i < records.size(); i++) {
+                JsonObject record = records.get(i).getAsJsonObject();
+                if (record.has("username") && record.has("password")) {
+                    String username = record.get("username").getAsString().trim().toLowerCase();
+                    String password = record.get("password").getAsString().trim();
+                    if (username.equals(email.trim().toLowerCase()) && password.equals(code.trim())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+
+        } catch (Exception e) {
+            System.err.println("[LoginMod] Email API error: " + e.getMessage());
+            return false;
+        }
+    }
+}
