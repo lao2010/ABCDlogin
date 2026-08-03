@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 lao20
+ * SPDX-License-Identifier: MIT
+ */
+
 package com.loginmod;
 
 import com.loginmod.config.ModConfig;
