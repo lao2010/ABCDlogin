@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-package com.loginmod.network;
+package com.abcdlogin.network;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.loginmod.LoginMod;
-import com.loginmod.config.ModConfig;
+import com.abcdlogin.ABCDlogin;
+import com.abcdlogin.config.ModConfig;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -26,7 +26,7 @@ public class EmailClient {
         int timeout = ModConfig.DATA.emailApiTimeout.get();
 
         if (apiUrl == null || apiUrl.isBlank()) {
-            LoginMod.LOGGER.warn("[LoginMod] 未配置邮箱验证 API 地址 (email.apiUrl)，无法查询验证码");
+            ABCDlogin.LOGGER.warn("[ABCDlogin] 未配置邮箱验证 API 地址 (email.apiUrl)，无法查询验证码");
             return false;
         }
 
@@ -41,7 +41,7 @@ public class EmailClient {
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
-                LoginMod.LOGGER.warn("[LoginMod] 邮箱验证 API 返回状态码: {}", responseCode);
+                ABCDlogin.LOGGER.warn("[ABCDlogin] 邮箱验证 API 返回状态码: {}", responseCode);
                 return false;
             }
 
@@ -71,7 +71,7 @@ public class EmailClient {
             return false;
 
         } catch (Exception e) {
-            LoginMod.LOGGER.warn("[LoginMod] 邮箱验证 API 请求失败: {}", e.getMessage());
+            ABCDlogin.LOGGER.warn("[ABCDlogin] 邮箱验证 API 请求失败: {}", e.getMessage());
             return false;
         } finally {
             if (conn != null) {

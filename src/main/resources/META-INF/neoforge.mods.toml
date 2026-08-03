@@ -3,10 +3,10 @@ loaderVersion = "[4,)"
 license = "MIT"
 
 [[mods]]
-modId = "loginmod"
-version = "1.5.0"
-displayName = "LoginMod"
-description = '''登录验证模组
+modId = "abcdlogin"
+version = "1.6.0"
+displayName = "ABCDlogin"
+description = '''ABCDlogin 登录验证模组
 - 密码登录 / 注册 / 邮箱绑定
 - 邮箱验证码自动放行登录
 - 忘记密码（邮箱验证重置）

@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-package com.loginmod.commands;
+package com.abcdlogin.commands;
 
-import com.loginmod.LoginMod;
-import com.loginmod.data.PlayerDataManager;
+import com.abcdlogin.ABCDlogin;
+import com.abcdlogin.data.PlayerDataManager;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
@@ -36,7 +36,7 @@ public class LoginCommand {
 
                     String password = StringArgumentType.getString(ctx, "password");
                     String username = player.getGameProfile().getName();
-                    PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                    PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                     if (dm.isLoggedIn(username)) {
                         player.sendSystemMessage(Component.literal("§a你已经登录了"));
@@ -49,8 +49,8 @@ public class LoginCommand {
                     }
 
                     if (dm.login(username, password)) {
-                        dm.recordLogin(username, LoginMod.getPlayerIp(player));
-                        LoginMod.finishLogin(player);
+                        dm.recordLogin(username, ABCDlogin.getPlayerIp(player));
+                        ABCDlogin.finishLogin(player);
                         player.sendSystemMessage(Component.literal("§a登录成功！欢迎回来"));
                         if (!dm.isEmailBound(username)) {
                             player.sendSystemMessage(Component.literal("§e提示：建议绑定邮箱以增强账户安全，使用 /email bind <邮箱>"));
@@ -74,7 +74,7 @@ public class LoginCommand {
 
                         String code = StringArgumentType.getString(ctx, "code");
                         String username = player.getGameProfile().getName();
-                        PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (dm.isLoggedIn(username)) {
                             player.sendSystemMessage(Component.literal("§a你已经登录了"));
@@ -99,12 +99,12 @@ public class LoginCommand {
 
                         // 立即查询一次
                         player.sendSystemMessage(Component.literal("§7正在验证验证码，请稍候..."));
-                        boolean verified = com.loginmod.network.EmailClient.checkVerificationCode(email, code);
+                        boolean verified = com.abcdlogin.network.EmailClient.checkVerificationCode(email, code);
 
                         if (verified) {
                             dm.setLoggedIn(username, true);
-                            dm.recordLogin(username, LoginMod.getPlayerIp(player));
-                            LoginMod.finishLogin(player);
+                            dm.recordLogin(username, ABCDlogin.getPlayerIp(player));
+                            ABCDlogin.finishLogin(player);
                             player.sendSystemMessage(Component.literal("§a验证码验证成功！已登录"));
                             return 1;
                         }
@@ -135,16 +135,16 @@ public class LoginCommand {
                     return;
                 }
 
-                boolean ok = com.loginmod.network.EmailClient.checkVerificationCode(email, code);
+                boolean ok = com.abcdlogin.network.EmailClient.checkVerificationCode(email, code);
                 if (ok) {
                     final ServerPlayer p = player;
                     p.server.execute(() -> {
                         if (p.hasDisconnected()) return;
-                        PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
                         if (dm.isLoggedIn(username)) return;
                         dm.setLoggedIn(username, true);
-                        dm.recordLogin(username, LoginMod.getPlayerIp(p));
-                        LoginMod.finishLogin(p);
+                        dm.recordLogin(username, ABCDlogin.getPlayerIp(p));
+                        ABCDlogin.finishLogin(p);
                         p.sendSystemMessage(Component.literal("§a验证码验证成功！已登录"));
                     });
                     return;
@@ -153,12 +153,12 @@ public class LoginCommand {
             // 超时
             player.server.execute(() -> {
                 if (!player.hasDisconnected()) {
-                    player.sendSystemMessage(Component.literal("§c验证码检测超时（60秒）。请确认已将验证码填写到邮件主题并发送到 " + com.loginmod.config.ModConfig.recipientDisplay() + " 后重试"));
+                    player.sendSystemMessage(Component.literal("§c验证码检测超时（60秒）。请确认已将验证码填写到邮件主题并发送到 " + com.abcdlogin.config.ModConfig.recipientDisplay() + " 后重试"));
                 }
             });
         });
         poller.setDaemon(true);
-        poller.setName("loginmod-code-poll-" + username);
+        poller.setName("abcdlogin-code-poll-" + username);
         poller.start();
     }
 }

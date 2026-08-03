@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: MIT
  */
 
-package com.loginmod;
+package com.abcdlogin;
 
-import com.loginmod.commands.EmailCommand;
-import com.loginmod.commands.LoginCommand;
-import com.loginmod.commands.RegisterCommand;
-import com.loginmod.data.PlayerDataManager;
+import com.abcdlogin.commands.EmailCommand;
+import com.abcdlogin.commands.LoginCommand;
+import com.abcdlogin.commands.RegisterCommand;
+import com.abcdlogin.data.PlayerDataManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -37,7 +37,7 @@ public class EventHandler {
     }
 
     private static boolean isLoggedIn(ServerPlayer player) {
-        return LoginMod.getPlayerDataManager().isLoggedIn(player.getGameProfile().getName());
+        return ABCDlogin.getPlayerDataManager().isLoggedIn(player.getGameProfile().getName());
     }
 
     //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -59,19 +59,19 @@ public class EventHandler {
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         String username = player.getGameProfile().getName();
-        PlayerDataManager dm = LoginMod.getPlayerDataManager();
+        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
         dm.setLoggedIn(username, false);
 
         // 传送到登录等待区（出生点上方，脚下草方块）
-        LoginMod.prepareForLogin(player);
+        ABCDlogin.prepareForLogin(player);
 
         if (dm.isRegistered(username)) {
             player.sendSystemMessage(Component.literal("§6========== 登录验证 =========="));
             player.sendSystemMessage(Component.literal("§e请使用 §f/login <密码> §e登录"));
             if (dm.isEmailBound(username)) {
                 player.sendSystemMessage(Component.literal("§e或使用 §f/email verify §e获取验证码"));
-                player.sendSystemMessage(Component.literal("§e将验证码填写到邮件主题，发送到 " + com.loginmod.config.ModConfig.recipientDisplay()));
+                player.sendSystemMessage(Component.literal("§e将验证码填写到邮件主题，发送到 " + com.abcdlogin.config.ModConfig.recipientDisplay()));
                 player.sendSystemMessage(Component.literal("§a服务器检测到验证码后将自动放行，无需其他操作"));
             }
             player.sendSystemMessage(Component.literal("§6================================"));
@@ -89,8 +89,8 @@ public class EventHandler {
     public void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         String username = player.getGameProfile().getName();
-        LoginMod.getPlayerDataManager().logout(username);
-        LoginMod.cleanup(player);
+        ABCDlogin.getPlayerDataManager().logout(username);
+        ABCDlogin.cleanup(player);
     }
 
     //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -107,7 +107,7 @@ public class EventHandler {
         player.hurtMarked = true;
 
         // 旁观者模式下速度控制无效，用锚点拉回防止飘走
-        LoginMod.lockPlayerPosition(player);
+        ABCDlogin.lockPlayerPosition(player);
     }
 
     //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

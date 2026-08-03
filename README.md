@@ -1,8 +1,8 @@
-# LoginMod - NeoForge 1.21.1 登录验证模组
+# ABCDlogin - NeoForge 1.21.1 登录验证模组
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Minecraft 服务器登录验证模组，基于 **NeoForge 21.1.235 (MC 1.21.1)**。
+Minecraft 服务器登录验证模组（原 LoginMod），基于 **NeoForge 21.1.235 (MC 1.21.1)**。
 
 ## 功能
 
@@ -12,8 +12,8 @@ Minecraft 服务器登录验证模组，基于 **NeoForge 21.1.235 (MC 1.21.1)**
 - **忘记密码** - `/email forgot <新密码> <确认密码>`，邮箱验证通过后自动重置密码并放行
 - **邮箱绑定/解绑** - `/email bind <邮箱>` / `/email unbind confirm`
 - **邮箱有效性验证** - 已登录玩家用 `/email verify` 跑一遍邮箱验证，确认绑定是否有效
-- **登录等待区** - 未登录玩家传送至出生点上方等待区，**只显示周围 1 个区块**（脚下草方块 + 虚空），无法移动/破坏/放置/交互/攻击/拾取/发言/使用其他命令
-- **自动迁移旧数据库** - 检测旧版本 `loginmod_players.json` 自动补全字段并升级
+- **登录等待区** - 未登录玩家传送至出生点上方等待区（旁观者视角），**只显示周围 1 个区块**，看不到装备与状态栏，无法移动/破坏/放置/交互/攻击/拾取/发言/使用其他命令
+- **自动迁移** - 自动迁移旧版 LoginMod 的配置与玩家数据库（`loginmod_players.json` / `loginmod-server.toml`）
 - **详细日志** - 注册、登录、验证码、传送等全部操作记录日志
 
 ## 命令列表
@@ -45,17 +45,17 @@ Minecraft 服务器登录验证模组，基于 **NeoForge 21.1.235 (MC 1.21.1)**
 ./gradlew build
 ```
 
-产物: `build/libs/loginmod.jar`
+产物: `build/libs/abcdlogin.jar`
 
 ## 安装
 
 1. 服务器安装 NeoForge 21.1.235+ (MC 1.21.1)
-2. 将 `loginmod.jar` 放入 `mods/` 目录
-3. 启动服务器（首次启动自动生成配置文件）
+2. 将 `abcdlogin.jar` 放入 `mods/` 目录
+3. 启动服务器（首次启动自动生成配置文件；旧版 LoginMod 配置与数据自动迁移）
 
 ## 配置
 
-编辑 `config/loginmod-server.toml`：
+编辑 `config/abcdlogin-server.toml`：
 
 ```toml
 [email]
@@ -89,17 +89,17 @@ codeExpiryMs = 300000
 
 ## 数据存储
 
-- 玩家账号: `config/loginmod_players.json`（密码 SHA-256 哈希存储）
+- 玩家账号: `config/abcdlogin_players.json`（密码 SHA-256 哈希存储）
 - 数据库包含 `schemaVersion` 字段，旧版本自动迁移
 
 ## 目录结构
 
 ```
-src/main/java/com/loginmod/
-├── LoginMod.java              # 主类: 等待区管理、视距限制、登录清理
-├── EventHandler.java          # 事件: 移动/方块/交互/发言/命令限制
-├── config/ModConfig.java      # 配置（邮箱服务、登录行为）
+src/main/java/com/abcdlogin/
+├── ABCDlogin.java            # 主类: 等待区管理、视距限制、登录清理
+├── EventHandler.java         # 事件: 移动/方块/交互/发言/命令限制
+├── config/ModConfig.java     # 配置（邮箱服务、登录行为）
 ├── data/PlayerDataManager.java # 数据管理 + 数据库迁移
-├── commands/                  # login / register / email 命令
-└── network/EmailClient.java   # 验证码 API 客户端
+├── commands/                 # login / register / email 命令
+└── network/EmailClient.java  # 验证码 API 客户端
 ```

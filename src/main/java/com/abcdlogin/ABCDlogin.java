@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-package com.loginmod;
+package com.abcdlogin;
 
-import com.loginmod.config.ModConfig;
-import com.loginmod.data.PlayerDataManager;
+import com.abcdlogin.config.ModConfig;
+import com.abcdlogin.data.PlayerDataManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket;
 import net.minecraft.resources.ResourceKey;
@@ -27,10 +27,10 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Mod(LoginMod.MODID)
-public class LoginMod {
-    public static final String MODID = "loginmod";
-    public static final Logger LOGGER = LoggerFactory.getLogger(LoginMod.class);
+@Mod(ABCDlogin.MODID)
+public class ABCDlogin {
+    public static final String MODID = "abcdlogin";
+    public static final Logger LOGGER = LoggerFactory.getLogger(ABCDlogin.class);
 
     /** 保存玩家加入时的真实位置，登录后传送回去 */
     private static final Map<String, PlayerPosition> PENDING_POSITIONS = new ConcurrentHashMap<>();
@@ -48,16 +48,16 @@ public class LoginMod {
 
     public record PlayerPosition(ResourceKey<Level> dimension, double x, double y, double z, float yaw, float pitch) {}
 
-    public LoginMod(IEventBus modEventBus, ModContainer container) {
+    public ABCDlogin(IEventBus modEventBus, ModContainer container) {
         ModConfig.init(container);
 
         playerDataManager = new PlayerDataManager(
-            FMLPaths.CONFIGDIR.get().resolve("loginmod_players.json").toFile()
+            FMLPaths.CONFIGDIR.get().resolve("abcdlogin_players.json").toFile()
         );
 
         NeoForge.EVENT_BUS.register(new EventHandler());
 
-        LOGGER.info("[LoginMod] LoginMod 已加载，版本 1.5.0");
+        LOGGER.info("[ABCDlogin] ABCDlogin 已加载，版本 1.5.0");
     }
 
     public static PlayerDataManager getPlayerDataManager() {
@@ -78,11 +78,11 @@ public class LoginMod {
         if (player.level().dimension().equals(dest.dimension())) {
             // 同维度：通过连接传送，客户端位置同步
             player.connection.teleport(x, y, z, yaw, pitch);
-            LOGGER.debug("[LoginMod] 同维度传送玩家到 ({:.1f}, {:.1f}, {:.1f})", x, y, z);
+            LOGGER.debug("[ABCDlogin] 同维度传送玩家到 ({:.1f}, {:.1f}, {:.1f})", x, y, z);
         } else {
             // 跨维度
             player.teleportTo(dest, x, y, z, yaw, pitch);
-            LOGGER.debug("[LoginMod] 跨维度传送玩家到 {} ({:.1f}, {:.1f}, {:.1f})",
+            LOGGER.debug("[ABCDlogin] 跨维度传送玩家到 {} ({:.1f}, {:.1f}, {:.1f})",
                 dest.dimension().location(), x, y, z);
         }
     }
@@ -108,7 +108,7 @@ public class LoginMod {
                 player.getX(), player.getY(), player.getZ(),
                 player.getYRot(), player.getXRot()
             ));
-            LOGGER.info("[LoginMod] 玩家 {} 加入，原位置: {} ({:.1f}, {:.1f}, {:.1f})",
+            LOGGER.info("[ABCDlogin] 玩家 {} 加入，原位置: {} ({:.1f}, {:.1f}, {:.1f})",
                 name, currentLevel.dimension().location(), player.getX(), player.getY(), player.getZ());
 
             // 限制客户端只显示周围 1 个区块
@@ -116,7 +116,7 @@ public class LoginMod {
 
             ServerLevel overworld = player.server.getLevel(Level.OVERWORLD);
             if (overworld == null) {
-                LOGGER.error("[LoginMod] 无法获取主世界，玩家 {} 无法进入等待区", name);
+                LOGGER.error("[ABCDlogin] 无法获取主世界，玩家 {} 无法进入等待区", name);
                 return;
             }
 
@@ -141,9 +141,9 @@ public class LoginMod {
             teleportPlayer(player, overworld, anchorX, anchorY, anchorZ, player.getYRot(), player.getXRot());
             ANCHOR_POSITIONS.put(name, new double[]{anchorX, anchorY, anchorZ});
 
-            LOGGER.info("[LoginMod] 玩家 {} 已进入登录等待区 ({:.1f}, {:.1f}, {:.1f})", name, anchorX, anchorY, anchorZ);
+            LOGGER.info("[ABCDlogin] 玩家 {} 已进入登录等待区 ({:.1f}, {:.1f}, {:.1f})", name, anchorX, anchorY, anchorZ);
         } catch (Exception e) {
-            LOGGER.error("[LoginMod] 玩家 {} 进入等待区失败", name, e);
+            LOGGER.error("[ABCDlogin] 玩家 {} 进入等待区失败", name, e);
         }
     }
 
@@ -161,7 +161,7 @@ public class LoginMod {
         if (dx * dx + dy * dy + dz * dz > 0.25) {
             // 偏离锚点超过 0.5 格，拉回
             player.connection.teleport(anchor[0], anchor[1], anchor[2], player.getYRot(), player.getXRot());
-            LOGGER.debug("[LoginMod] 玩家 {} 位置偏离等待区，已拉回", name);
+            LOGGER.debug("[ABCDlogin] 玩家 {} 位置偏离等待区，已拉回", name);
         }
     }
 
@@ -178,30 +178,30 @@ public class LoginMod {
             GameType saved = SAVED_GAME_MODES.remove(name);
             if (saved != null && player.gameMode.getGameModeForPlayer() != saved) {
                 player.setGameMode(saved);
-                LOGGER.info("[LoginMod] 玩家 {} 游戏模式已恢复为 {}", name, saved);
+                LOGGER.info("[ABCDlogin] 玩家 {} 游戏模式已恢复为 {}", name, saved);
             }
             player.setNoGravity(false);
 
             // 恢复客户端正常视距
             int viewDistance = player.server.getPlayerList().getViewDistance();
             player.connection.send(new ClientboundSetChunkCacheRadiusPacket(viewDistance));
-            LOGGER.info("[LoginMod] 玩家 {} 登录成功，视距已恢复为 {} 个区块", name, viewDistance);
+            LOGGER.info("[ABCDlogin] 玩家 {} 登录成功，视距已恢复为 {} 个区块", name, viewDistance);
 
             PlayerPosition pos = PENDING_POSITIONS.remove(name);
             if (pos != null) {
                 ServerLevel dest = player.server.getLevel(pos.dimension());
                 if (dest != null) {
                     teleportPlayer(player, dest, pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
-                    LOGGER.info("[LoginMod] 玩家 {} 已传送回原位置 {} ({:.1f}, {:.1f}, {:.1f})",
+                    LOGGER.info("[ABCDlogin] 玩家 {} 已传送回原位置 {} ({:.1f}, {:.1f}, {:.1f})",
                         name, pos.dimension().location(), pos.x(), pos.y(), pos.z());
                 } else {
-                    LOGGER.warn("[LoginMod] 玩家 {} 原维度 {} 不可用，留在出生点", name, pos.dimension().location());
+                    LOGGER.warn("[ABCDlogin] 玩家 {} 原维度 {} 不可用，留在出生点", name, pos.dimension().location());
                 }
             } else {
-                LOGGER.warn("[LoginMod] 玩家 {} 没有记录原位置，留在出生点", name);
+                LOGGER.warn("[ABCDlogin] 玩家 {} 没有记录原位置，留在出生点", name);
             }
         } catch (Exception e) {
-            LOGGER.error("[LoginMod] 玩家 {} 登录后处理失败", name, e);
+            LOGGER.error("[ABCDlogin] 玩家 {} 登录后处理失败", name, e);
         }
     }
 
@@ -218,12 +218,12 @@ public class LoginMod {
             GameType saved = SAVED_GAME_MODES.remove(name);
             if (saved != null && player.gameMode.getGameModeForPlayer() != saved) {
                 player.setGameMode(saved);
-                LOGGER.info("[LoginMod] 玩家 {} 退出时游戏模式已恢复为 {}", name, saved);
+                LOGGER.info("[ABCDlogin] 玩家 {} 退出时游戏模式已恢复为 {}", name, saved);
             }
             player.setNoGravity(false);
-            LOGGER.info("[LoginMod] 玩家 {} 已清理等待区数据", name);
+            LOGGER.info("[ABCDlogin] 玩家 {} 已清理等待区数据", name);
         } catch (Exception e) {
-            LOGGER.error("[LoginMod] 清理玩家 {} 数据失败", name, e);
+            LOGGER.error("[ABCDlogin] 清理玩家 {} 数据失败", name, e);
         }
     }
 

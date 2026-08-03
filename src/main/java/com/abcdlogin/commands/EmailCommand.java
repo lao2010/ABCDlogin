@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-package com.loginmod.commands;
+package com.abcdlogin.commands;
 
-import com.loginmod.LoginMod;
-import com.loginmod.config.ModConfig;
-import com.loginmod.data.PlayerDataManager;
+import com.abcdlogin.ABCDlogin;
+import com.abcdlogin.config.ModConfig;
+import com.abcdlogin.data.PlayerDataManager;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
@@ -38,7 +38,7 @@ public class EmailCommand {
 
                         String email = StringArgumentType.getString(ctx, "email").trim();
                         String username = player.getGameProfile().getName();
-                        PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (!dm.isRegistered(username)) {
                             player.sendSystemMessage(Component.literal("§c请先使用 /register <密码> <确认密码> 注册"));
@@ -72,7 +72,7 @@ public class EmailCommand {
                         }
 
                         String username = player.getGameProfile().getName();
-                        PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (dm.unbindEmail(username)) {
                             player.sendSystemMessage(Component.literal("§a邮箱已解绑"));
@@ -104,7 +104,7 @@ public class EmailCommand {
                     }
 
                     String username = player.getGameProfile().getName();
-                    PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                    PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                     if (!dm.isRegistered(username)) {
                         player.sendSystemMessage(Component.literal("§c请先注册"));
@@ -143,7 +143,7 @@ public class EmailCommand {
                             String currentCode = dm.getVerificationCode(username);
                             if (code.equals(currentCode)) {
                                 dm.clearVerificationCode(username);
-                                LoginMod.LOGGER.info("[LoginMod] 玩家 {} 的验证码已过期清除", username);
+                                ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 的验证码已过期清除", username);
                             }
                         } catch (InterruptedException ignored) {}
                     }).start();
@@ -165,7 +165,7 @@ public class EmailCommand {
                             String newPassword = StringArgumentType.getString(ctx, "newPassword");
                             String confirm = StringArgumentType.getString(ctx, "confirmPassword");
                             String username = player.getGameProfile().getName();
-                            PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                            PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                             if (!dm.isRegistered(username)) {
                                 player.sendSystemMessage(Component.literal("§c你还没有注册"));
@@ -209,7 +209,7 @@ public class EmailCommand {
                                     String currentCode = dm.getVerificationCode(username);
                                     if (code.equals(currentCode)) {
                                         dm.clearVerificationCode(username);
-                                        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 的验证码已过期清除", username);
+                                        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 的验证码已过期清除", username);
                                     }
                                 } catch (InterruptedException ignored) {}
                             }).start();
@@ -229,7 +229,7 @@ public class EmailCommand {
                     }
 
                     String username = player.getGameProfile().getName();
-                    PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                    PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                     if (!dm.isRegistered(username)) {
                         player.sendSystemMessage(Component.literal("§c你还没有注册"));
@@ -278,25 +278,25 @@ public class EmailCommand {
 
                 if (player.hasDisconnected()) return;
 
-                boolean ok = com.loginmod.network.EmailClient.checkVerificationCode(email, code);
+                boolean ok = com.abcdlogin.network.EmailClient.checkVerificationCode(email, code);
                 if (ok) {
                     final ServerPlayer p = player;
                     p.server.execute(() -> {
                         if (p.hasDisconnected()) return;
-                        PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (loggedInAtStart) {
                             // 已登录玩家：仅验证邮箱有效性
                             p.sendSystemMessage(Component.literal("§a邮箱验证成功！邮箱绑定有效"));
-                            LoginMod.LOGGER.info("[LoginMod] 玩家 {} 邮箱有效性验证通过 (邮箱: {})", username, email);
+                            ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 邮箱有效性验证通过 (邮箱: {})", username, email);
                         } else {
                             // 未登录玩家：自动放行
                             if (dm.isLoggedIn(username)) return;
                             dm.setLoggedIn(username, true);
-                            dm.recordLogin(username, LoginMod.getPlayerIp(p));
-                            LoginMod.finishLogin(p);
+                            dm.recordLogin(username, ABCDlogin.getPlayerIp(p));
+                            ABCDlogin.finishLogin(p);
                             p.sendSystemMessage(Component.literal("§a验证码验证成功！已自动放行，欢迎回来"));
-                            LoginMod.LOGGER.info("[LoginMod] 玩家 {} 验证码自动放行成功 (邮箱: {})", username, email);
+                            ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 验证码自动放行成功 (邮箱: {})", username, email);
                         }
                     });
                     return;
@@ -312,12 +312,12 @@ public class EmailCommand {
                     }
                 }
             });
-            LoginMod.LOGGER.info("[LoginMod] 玩家 {} 验证码自动检测超时", username);
+            ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 验证码自动检测超时", username);
         });
         poller.setDaemon(true);
-        poller.setName("loginmod-auto-verify-" + username);
+        poller.setName("abcdlogin-auto-verify-" + username);
         poller.start();
-        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 已启动验证码自动检测 (邮箱: {}, 最长等待{}秒)",
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 已启动验证码自动检测 (邮箱: {}, 最长等待{}秒)",
             username, email, timeoutMs / 1000);
     }
 
@@ -340,12 +340,12 @@ public class EmailCommand {
 
                 if (player.hasDisconnected()) return;
 
-                boolean ok = com.loginmod.network.EmailClient.checkVerificationCode(email, code);
+                boolean ok = com.abcdlogin.network.EmailClient.checkVerificationCode(email, code);
                 if (ok) {
                     final ServerPlayer p = player;
                     p.server.execute(() -> {
                         if (p.hasDisconnected()) return;
-                        PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (!dm.changePassword(username, newPassword)) {
                             p.sendSystemMessage(Component.literal("§c密码重置失败，请重试"));
@@ -356,13 +356,13 @@ public class EmailCommand {
                         if (!dm.isLoggedIn(username)) {
                             // 未登录：自动放行
                             dm.setLoggedIn(username, true);
-                            dm.recordLogin(username, LoginMod.getPlayerIp(p));
-                            LoginMod.finishLogin(p);
+                            dm.recordLogin(username, ABCDlogin.getPlayerIp(p));
+                            ABCDlogin.finishLogin(p);
                             p.sendSystemMessage(Component.literal("§a已自动登录，欢迎回来"));
                         } else {
                             p.sendSystemMessage(Component.literal("§e下次登录请使用新密码"));
                         }
-                        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 忘记密码流程完成，密码已重置", username);
+                        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 忘记密码流程完成，密码已重置", username);
                     });
                     return;
                 }
@@ -373,12 +373,12 @@ public class EmailCommand {
                     player.sendSystemMessage(Component.literal("§c验证码检测超时，密码未修改。请重新使用 /email forgot <新密码> <确认密码>"));
                 }
             });
-            LoginMod.LOGGER.info("[LoginMod] 玩家 {} 忘记密码流程超时", username);
+            ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 忘记密码流程超时", username);
         });
         poller.setDaemon(true);
-        poller.setName("loginmod-forgot-" + username);
+        poller.setName("abcdlogin-forgot-" + username);
         poller.start();
-        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 已启动忘记密码验证 (邮箱: {}, 最长等待{}秒)",
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 已启动忘记密码验证 (邮箱: {}, 最长等待{}秒)",
             username, email, timeoutMs / 1000);
     }
 }

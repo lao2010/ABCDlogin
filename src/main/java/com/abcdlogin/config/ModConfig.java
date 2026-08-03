@@ -3,15 +3,17 @@
  * SPDX-License-Identifier: MIT
  */
 
-package com.loginmod.config;
+package com.abcdlogin.config;
 
+import com.abcdlogin.ABCDlogin;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig.Type;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
 /**
- * 模组配置 (config/loginmod-server.toml)
+ * 模组配置 (config/abcdlogin-server.toml)
  *
  * 注意：默认值不包含任何个人服务器地址，方便他人直接使用。
  * 使用者只需配置自己的邮箱验证服务地址即可。
@@ -77,7 +79,27 @@ public class ModConfig {
     }
 
     public static void init(ModContainer container) {
-        container.registerConfig(Type.SERVER, SPEC, "loginmod-server.toml");
+        migrateLegacyConfig();
+        container.registerConfig(Type.SERVER, SPEC, "abcdlogin-server.toml");
+    }
+
+    /**
+     * 旧版本（LoginMod）配置文件自动迁移：
+     * 若新配置 abcdlogin-server.toml 不存在，但旧配置 loginmod-server.toml 存在，
+     * 自动复制旧配置内容，保留服务器原有设置。
+     */
+    private static void migrateLegacyConfig() {
+        try {
+            java.nio.file.Path configDir = FMLPaths.CONFIGDIR.get();
+            java.nio.file.Path newFile = configDir.resolve("abcdlogin-server.toml");
+            java.nio.file.Path legacyFile = configDir.resolve("loginmod-server.toml");
+            if (!java.nio.file.Files.exists(newFile) && java.nio.file.Files.exists(legacyFile)) {
+                java.nio.file.Files.copy(legacyFile, newFile);
+                ABCDlogin.LOGGER.info("[ABCDlogin] 检测到旧版配置文件 loginmod-server.toml，已自动迁移为 abcdlogin-server.toml");
+            }
+        } catch (Exception e) {
+            ABCDlogin.LOGGER.error("[ABCDlogin] 旧版配置文件迁移异常", e);
+        }
     }
 
     /** 获取验证码接收邮箱，未配置时返回提示文本 */

@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: MIT
  */
 
-package com.loginmod.data;
+package com.abcdlogin.data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.loginmod.LoginMod;
+import com.abcdlogin.ABCDlogin;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 玩家数据管理器
  * 负责玩家账号数据的存储、加载和旧版本数据库迁移。
  *
- * 数据库格式 (loginmod_players.json):
+ * 数据库格式 (abcdlogin_players.json):
  * <pre>
  * {
  *   "schemaVersion": 2,
@@ -82,7 +82,30 @@ public class PlayerDataManager {
 
     public PlayerDataManager(File dataFile) {
         this.dataFile = dataFile;
+        migrateFromLegacyFile();
         load();
+    }
+
+    /**
+     * 旧版本（LoginMod）数据文件自动迁移：
+     * 若新文件名 abcdlogin_players.json 不存在，但旧文件名 loginmod_players.json 存在，
+     * 自动重命名为新文件名，保证玩家账号数据不丢失。
+     */
+    private void migrateFromLegacyFile() {
+        try {
+            if (dataFile.exists()) return;
+            File legacyFile = new File(dataFile.getParentFile(), "loginmod_players.json");
+            if (legacyFile.exists()) {
+                boolean ok = legacyFile.renameTo(dataFile);
+                if (ok) {
+                    ABCDlogin.LOGGER.info("[ABCDlogin] 检测到旧版数据库文件 loginmod_players.json，已自动迁移为 {}", dataFile.getName());
+                } else {
+                    ABCDlogin.LOGGER.warn("[ABCDlogin] 旧版数据库文件迁移失败: {} -> {}", legacyFile.getName(), dataFile.getName());
+                }
+            }
+        } catch (Exception e) {
+            ABCDlogin.LOGGER.error("[ABCDlogin] 旧版数据库迁移异常", e);
+        }
     }
 
     public boolean isRegistered(String username) {
@@ -94,7 +117,7 @@ public class PlayerDataManager {
         if (players.containsKey(key)) return false;
         players.put(key, new PlayerEntry(hashPassword(password)));
         save();
-        LoginMod.LOGGER.info("[LoginMod] 新玩家注册: {} (共 {} 个账号)", username, players.size());
+        ABCDlogin.LOGGER.info("[ABCDlogin] 新玩家注册: {} (共 {} 个账号)", username, players.size());
         return true;
     }
 
@@ -106,7 +129,7 @@ public class PlayerDataManager {
         entry.lastLoginAt = System.currentTimeMillis();
         loggedInPlayers.add(key);
         save();
-        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 密码登录成功", username);
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 密码登录成功", username);
         return true;
     }
 
@@ -120,7 +143,7 @@ public class PlayerDataManager {
                 entry.lastLoginIp = ip;
             }
             save();
-            LoginMod.LOGGER.info("[LoginMod] 玩家 {} 登录记录更新: IP={}", username, entry.lastLoginIp);
+            ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 登录记录更新: IP={}", username, entry.lastLoginIp);
         }
     }
 
@@ -139,7 +162,7 @@ public class PlayerDataManager {
 
     public void logout(String username) {
         loggedInPlayers.remove(username.toLowerCase());
-        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 已登出", username);
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 已登出", username);
     }
 
     public boolean bindEmail(String username, String email) {
@@ -149,7 +172,7 @@ public class PlayerDataManager {
         entry.email = email;
         entry.emailBound = true;
         save();
-        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 绑定邮箱: {}", username, email);
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 绑定邮箱: {}", username, email);
         return true;
     }
 
@@ -161,7 +184,7 @@ public class PlayerDataManager {
         entry.email = "";
         entry.emailBound = false;
         save();
-        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 已解绑邮箱", username);
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 已解绑邮箱", username);
         return true;
     }
 
@@ -172,7 +195,7 @@ public class PlayerDataManager {
         if (entry == null) return false;
         entry.passwordHash = hashPassword(newPassword);
         save();
-        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 密码已修改", username);
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 密码已修改", username);
         return true;
     }
 
@@ -192,7 +215,7 @@ public class PlayerDataManager {
         // 使用 SecureRandom 生成不可预测的验证码
         String code = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
         pendingVerificationCodes.put(username.toLowerCase(), code);
-        LoginMod.LOGGER.info("[LoginMod] 玩家 {} 已生成验证码 (5分钟有效)", username);
+        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 已生成验证码 (5分钟有效)", username);
         return code;
     }
 
@@ -225,7 +248,7 @@ public class PlayerDataManager {
      */
     private void load() {
         if (!dataFile.exists()) {
-            LoginMod.LOGGER.info("[LoginMod] 玩家数据库不存在，将创建新文件: {}", dataFile.getAbsolutePath());
+            ABCDlogin.LOGGER.info("[ABCDlogin] 玩家数据库不存在，将创建新文件: {}", dataFile.getAbsolutePath());
             save();
             return;
         }
@@ -234,13 +257,13 @@ public class PlayerDataManager {
             Type type = new TypeToken<StorageData>() {}.getType();
             StorageData data = GSON.fromJson(reader, type);
             if (data == null) {
-                LoginMod.LOGGER.warn("[LoginMod] 数据库文件为空或无法解析: {}", dataFile.getAbsolutePath());
+                ABCDlogin.LOGGER.warn("[ABCDlogin] 数据库文件为空或无法解析: {}", dataFile.getAbsolutePath());
                 return;
             }
 
             if (data.schemaVersion < SCHEMA_VERSION) {
                 // 旧版本数据库迁移
-                LoginMod.LOGGER.info("[LoginMod] 检测到旧版本数据库 (schemaVersion={}, 当前={})，开始自动迁移...",
+                ABCDlogin.LOGGER.info("[ABCDlogin] 检测到旧版本数据库 (schemaVersion={}, 当前={})，开始自动迁移...",
                     data.schemaVersion, SCHEMA_VERSION);
 
                 int updated = 0;
@@ -254,17 +277,17 @@ public class PlayerDataManager {
                 data.schemaVersion = SCHEMA_VERSION;
                 players.putAll(data.players);
                 save();
-                LoginMod.LOGGER.info("[LoginMod] 数据库迁移完成: 更新了 {} 个玩家条目，共 {} 个玩家账号，已保存为新格式 v{}",
+                ABCDlogin.LOGGER.info("[ABCDlogin] 数据库迁移完成: 更新了 {} 个玩家条目，共 {} 个玩家账号，已保存为新格式 v{}",
                     updated, players.size(), SCHEMA_VERSION);
             } else {
                 players.putAll(data.players);
-                LoginMod.LOGGER.info("[LoginMod] 数据库加载成功: {} 个玩家账号 (schemaVersion={})",
+                ABCDlogin.LOGGER.info("[ABCDlogin] 数据库加载成功: {} 个玩家账号 (schemaVersion={})",
                     players.size(), data.schemaVersion);
             }
         } catch (IOException e) {
-            LoginMod.LOGGER.error("[LoginMod] 加载玩家数据库失败: {}", dataFile.getAbsolutePath(), e);
+            ABCDlogin.LOGGER.error("[ABCDlogin] 加载玩家数据库失败: {}", dataFile.getAbsolutePath(), e);
         } catch (Exception e) {
-            LoginMod.LOGGER.error("[LoginMod] 解析玩家数据库异常，请检查文件是否损坏: {}", dataFile.getAbsolutePath(), e);
+            ABCDlogin.LOGGER.error("[ABCDlogin] 解析玩家数据库异常，请检查文件是否损坏: {}", dataFile.getAbsolutePath(), e);
         }
     }
 
@@ -280,7 +303,7 @@ public class PlayerDataManager {
                 GSON.toJson(data, writer);
             }
         } catch (IOException e) {
-            LoginMod.LOGGER.error("[LoginMod] 保存玩家数据库失败: {}", dataFile.getAbsolutePath(), e);
+            ABCDlogin.LOGGER.error("[ABCDlogin] 保存玩家数据库失败: {}", dataFile.getAbsolutePath(), e);
         }
     }
 }

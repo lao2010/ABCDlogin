@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-package com.loginmod.commands;
+package com.abcdlogin.commands;
 
-import com.loginmod.LoginMod;
-import com.loginmod.data.PlayerDataManager;
+import com.abcdlogin.ABCDlogin;
+import com.abcdlogin.data.PlayerDataManager;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
@@ -32,7 +32,7 @@ public class RegisterCommand {
                         String password = StringArgumentType.getString(ctx, "password");
                         String confirm = StringArgumentType.getString(ctx, "confirmPassword");
                         String username = player.getGameProfile().getName();
-                        PlayerDataManager dm = LoginMod.getPlayerDataManager();
+                        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (dm.isRegistered(username)) {
                             player.sendSystemMessage(Component.literal("§c你已经注册过了！请使用 /login <密码> 登录"));
@@ -51,8 +51,8 @@ public class RegisterCommand {
 
                         dm.register(username, password);
                         dm.setLoggedIn(username, true);
-                        dm.recordLogin(username, LoginMod.getPlayerIp(player));
-                        LoginMod.finishLogin(player);
+                        dm.recordLogin(username, ABCDlogin.getPlayerIp(player));
+                        ABCDlogin.finishLogin(player);
                         player.sendSystemMessage(Component.literal("§a注册成功！已自动登录"));
                         player.sendSystemMessage(Component.literal("§e提示：建议使用 /email bind <邮箱> 绑定邮箱，以便使用验证码登录和找回密码"));
                         return 1;
