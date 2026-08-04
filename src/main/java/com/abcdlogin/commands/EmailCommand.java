@@ -18,11 +18,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
 public class EmailCommand {
     private static final Pattern EMAIL_PATTERN =
         Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+
+    /** 记录每个玩家的轮询 Future，用于取消旧轮询防止重复堆积 */
+    private static final Map<String, Future<?>> POLL_FUTURES = new ConcurrentHashMap<>();
 
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
@@ -118,6 +124,9 @@ public class EmailCommand {
                         return 0;
                     }
 
+                    // 取消该玩家之前的轮询，避免重复线程堆积
+                    cancelPreviousPolls(username);
+
                     String code = dm.generateVerificationCode(username);
                     String email = dm.getEmail(username);
                     boolean loggedIn = dm.isLoggedIn(username);
@@ -138,18 +147,8 @@ public class EmailCommand {
                     // 启动自动检测：验证码到达后根据场景处理（登录放行 / 邮箱有效性验证）
                     startAutoVerify(player, username, email, code, loggedIn);
 
-                    // 验证码过期后自动清除
-                    int expiryMs = ModConfig.DATA.codeExpiryMs.get();
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(expiryMs);
-                            String currentCode = dm.getVerificationCode(username);
-                            if (code.equals(currentCode)) {
-                                dm.clearVerificationCode(username);
-                                ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 的验证码已过期清除", username);
-                            }
-                        } catch (InterruptedException ignored) {}
-                    }).start();
+                    // 验证码过期后自动清除（使用共享线程池，避免无限制创建线程）
+                    scheduleCodeClear(username, code, ModConfig.DATA.codeExpiryMs.get());
 
                     return 1;
                 })
@@ -205,18 +204,8 @@ public class EmailCommand {
 
                             startForgetPassword(player, username, email, code, newPassword);
 
-                            // 验证码过期后自动清除
-                            int expiryMs = ModConfig.DATA.codeExpiryMs.get();
-                            new Thread(() -> {
-                                try {
-                                    Thread.sleep(expiryMs);
-                                    String currentCode = dm.getVerificationCode(username);
-                                    if (code.equals(currentCode)) {
-                                        dm.clearVerificationCode(username);
-                                        ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 的验证码已过期清除", username);
-                                    }
-                                } catch (InterruptedException ignored) {}
-                            }).start();
+                            // 验证码过期后自动清除（使用共享线程池，避免无限制创建线程）
+                            scheduleCodeClear(username, code, ModConfig.DATA.codeExpiryMs.get());
 
                             return 1;
                         })
@@ -261,6 +250,35 @@ public class EmailCommand {
     // ═══════════════════════════════════════════════════════
 
     /**
+     * 取消玩家之前的轮询任务（避免同一玩家多次 verify 堆积轮询线程）。
+     */
+    private static void cancelPreviousPolls(String username) {
+        String key = username.toLowerCase();
+        Future<?> old = POLL_FUTURES.remove(key);
+        if (old != null && !old.isDone()) {
+            old.cancel(true);
+            ABCDlogin.LOGGER.info("[ABCDlogin] 已取消玩家 {} 的旧验证码轮询", username);
+        }
+    }
+
+    /**
+     * 安排验证码过期清理（使用共享线程池，不再无限制创建 daemon 线程）。
+     */
+    private static void scheduleCodeClear(String username, String code, int expiryMs) {
+        ABCDlogin.POOL.submit(() -> {
+            try {
+                Thread.sleep(expiryMs);
+                PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
+                String currentCode = dm.getVerificationCode(username);
+                if (code.equals(currentCode)) {
+                    dm.clearVerificationCode(username);
+                    ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 的验证码已过期清除", username);
+                }
+            } catch (InterruptedException ignored) {}
+        });
+    }
+
+    /**
      * 邮箱验证自动放行 / 邮箱有效性验证：
      * 玩家发送验证码后，服务器持续查询验证码列表，
      * 查到匹配记录（邮箱 + 验证码）后：
@@ -271,7 +289,8 @@ public class EmailCommand {
         int intervalMs = ModConfig.DATA.pollIntervalMs.get();
         int timeoutMs = ModConfig.DATA.pollTimeoutMs.get();
 
-        Thread poller = new Thread(() -> {
+        String key = username.toLowerCase();
+        Future<?> future = ABCDlogin.POOL.submit(() -> {
             long deadline = System.currentTimeMillis() + timeoutMs;
             while (System.currentTimeMillis() < deadline) {
                 try {
@@ -284,10 +303,13 @@ public class EmailCommand {
 
                 boolean ok = EmailClient.checkVerificationCode(email, code);
                 if (ok) {
+                    // 验证成功，清除验证码防止重用
+                    PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
+                    dm.clearVerificationCode(username);
+
                     final ServerPlayer p = player;
                     p.server.execute(() -> {
                         if (p.hasDisconnected()) return;
-                        PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
 
                         if (loggedInAtStart) {
                             // 已登录玩家：仅验证邮箱有效性
@@ -303,6 +325,7 @@ public class EmailCommand {
                             ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 验证码自动放行成功 (邮箱: {})", username, email);
                         }
                     });
+                    POLL_FUTURES.remove(key);
                     return;
                 }
             }
@@ -316,11 +339,10 @@ public class EmailCommand {
                     }
                 }
             });
+            POLL_FUTURES.remove(key);
             ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 验证码自动检测超时", username);
         });
-        poller.setDaemon(true);
-        poller.setName("abcdlogin-auto-verify-" + username);
-        poller.start();
+        POLL_FUTURES.put(key, future);
         ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 已启动验证码自动检测 (邮箱: {}, 最长等待{}秒)",
             username, email, timeoutMs / 1000);
     }
@@ -333,7 +355,7 @@ public class EmailCommand {
         int intervalMs = ModConfig.DATA.pollIntervalMs.get();
         int timeoutMs = ModConfig.DATA.pollTimeoutMs.get();
 
-        Thread poller = new Thread(() -> {
+        ABCDlogin.POOL.submit(() -> {
             long deadline = System.currentTimeMillis() + timeoutMs;
             while (System.currentTimeMillis() < deadline) {
                 try {
@@ -346,6 +368,9 @@ public class EmailCommand {
 
                 boolean ok = EmailClient.checkVerificationCode(email, code);
                 if (ok) {
+                    // 验证成功，清除验证码防止重用
+                    ABCDlogin.getPlayerDataManager().clearVerificationCode(username);
+
                     final ServerPlayer p = player;
                     p.server.execute(() -> {
                         if (p.hasDisconnected()) return;
@@ -379,9 +404,6 @@ public class EmailCommand {
             });
             ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 忘记密码流程超时", username);
         });
-        poller.setDaemon(true);
-        poller.setName("abcdlogin-forgot-" + username);
-        poller.start();
         ABCDlogin.LOGGER.info("[ABCDlogin] 玩家 {} 已启动忘记密码验证 (邮箱: {}, 最长等待{}秒)",
             username, email, timeoutMs / 1000);
     }

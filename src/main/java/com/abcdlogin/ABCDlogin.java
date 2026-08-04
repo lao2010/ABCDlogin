@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Mod(ABCDlogin.MODID)
 public class ABCDlogin {
@@ -44,6 +46,12 @@ public class ABCDlogin {
 
     /** 保存玩家原游戏模式（未登录时切换为旁观者以隐藏装备与状态） */
     private static final Map<String, GameType> SAVED_GAME_MODES = new ConcurrentHashMap<>();
+
+    /**
+     * 共享线程池：供邮箱验证码轮询、忘记密码检测、验证码过期清理等异步任务使用。
+     * 避免每次操作都 new Thread 造成线程堆积。
+     */
+    public static final ExecutorService POOL = Executors.newCachedThreadPool();
 
     /** 记录等待区锚点坐标，防止旁观者模式下玩家飘走 */
     private static final Map<String, double[]> ANCHOR_POSITIONS = new ConcurrentHashMap<>();
@@ -64,7 +72,7 @@ public class ABCDlogin {
         LOGGER.info("[ABCDlogin] ABCDlogin 已加载，版本 {}", ABCDlogin.VERSION);
     }
 
-    public static String VERSION = "1.8.0";
+    public static String VERSION = "1.8.1";
 
     // ═══════════════════════════════════════════════════════
     //  传送工具
