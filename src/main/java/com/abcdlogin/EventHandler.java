@@ -23,11 +23,13 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.CommandEvent;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class EventHandler {
     private static final Set<String> ALLOWED_COMMANDS = ConcurrentHashMap.newKeySet();
+    private static final Map<String, double[]> ANCHOR_POSITIONS = new ConcurrentHashMap<>();
 
     static {
         ALLOWED_COMMANDS.add("login");
@@ -39,7 +41,18 @@ public class EventHandler {
     }
 
     private static boolean isLoggedIn(ServerPlayer player) {
-        return ABCDlogin.getPlayerDataManager().isLoggedIn(player.getGameProfile().getName());
+        // 检查玩家是否已登录
+        if (ABCDlogin.getPlayerDataManager().isLoggedIn(player.getGameProfile().getName())) {
+            return true;
+        }
+        
+        // 如果玩家不在登录等待区，也视为已登录（可能是其他模组处理的登录状态）
+        String name = player.getGameProfile().getName();
+        if (!ANCHOR_POSITIONS.containsKey(name)) {
+            return true;
+        }
+        
+        return false;
     }
 
     //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

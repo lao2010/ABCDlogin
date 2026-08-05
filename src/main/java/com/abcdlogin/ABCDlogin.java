@@ -209,7 +209,12 @@ public class ABCDlogin {
             if (pos != null) {
                 ServerLevel dest = player.server.getLevel(pos.dimension());
                 if (dest != null) {
-                    teleportPlayer(player, dest, pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
+                    // 强制同步客户端位置
+                    player.connection.teleport(pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
+                    // 确保服务器端也更新位置
+                    player.setPos(pos.x(), pos.y(), pos.z());
+                    player.setYRot(pos.yaw());
+                    player.setXRot(pos.pitch());
                     LOGGER.info("[ABCDlogin] 玩家 {} 已传送回原位置 {} ({:.1f}, {:.1f}, {:.1f})",
                         name, pos.dimension().location(), pos.x(), pos.y(), pos.z());
                 } else {
