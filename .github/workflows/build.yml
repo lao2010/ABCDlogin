@@ -30,6 +30,14 @@ jobs:
           chmod +x gradlew
           ./gradlew build --no-daemon
 
+      - name: Check build output
+        run: |
+          if [ ! -f "build/libs/abcdlogin.jar" ]; then
+            echo "❌ Build failed: abcdlogin.jar not found"
+            exit 1
+          fi
+          echo "✅ Build successful: abcdlogin.jar created"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -55,3 +63,6 @@ jobs:
         with:
           files: abcdlogin.jar
           generate_release_notes: true
+          draft: false
+          prerelease: false
+          name: Release ${{ github.ref_name }}
