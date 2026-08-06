@@ -122,6 +122,47 @@ public class LoginCommand {
                 )
             )
         );
+
+        // /flogin <前置验证码> - 前置验证码快速登录
+        dispatcher.register(Commands.literal("flogin")
+            .then(Commands.argument("preCode", StringArgumentType.greedyString())
+                .executes(ctx -> {
+                    CommandSourceStack source = ctx.getSource();
+                    if (!(source.getEntity() instanceof ServerPlayer player)) {
+                        source.sendFailure(Component.literal(I18n.get("email.playerOnly", I18n.DEFAULT_LANG)));
+                        return 0;
+                    }
+
+                    String preCode = StringArgumentType.getString(ctx, "preCode");
+                    String username = player.getGameProfile().getName();
+                    PlayerDataManager dm = ABCDlogin.getPlayerDataManager();
+
+                    if (dm.isLoggedIn(username)) {
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.alreadyLoggedIn")));
+                        return 1;
+                    }
+
+                    if (!dm.isRegistered(username)) {
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "login.notRegistered")));
+                        return 0;
+                    }
+
+                    // 检查前置验证码
+                    boolean verified = EmailClient.checkPreVerificationCode(username, preCode);
+                    
+                    if (verified) {
+                        dm.setLoggedIn(username, true);
+                        dm.recordLogin(username, ABCDlogin.getPlayerIp(player));
+                        ABCDlogin.finishLogin(player);
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "flogin.success")));
+                        return 1;
+                    } else {
+                        player.sendSystemMessage(Component.literal(I18n.t(player, "flogin.invalidCode")));
+                        return 0;
+                    }
+                })
+            )
+        );
     }
 
     /**

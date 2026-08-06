@@ -80,5 +80,9 @@
   "command.noPermission": "§c権限がありません",
   "command.playerOnly": "§cプレイヤーのみ使用可能です",
   "command.error": "§cコマンド実行エラー: {0}",
-  "command.success": "§a操作成功"
+  "command.success": "§a操作成功",
+
+  "flogin.usage": "§e使用方法: §f/flogin <事前認証コード>",
+  "flogin.success": "§a事前認証コードでログイン成功！ようこそ",
+  "flogin.invalidCode": "§c無効な事前認証コードです"
 }

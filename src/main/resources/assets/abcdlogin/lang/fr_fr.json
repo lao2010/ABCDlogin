@@ -80,5 +80,9 @@
   "command.noPermission": "§cPermissions insuffisantes",
   "command.playerOnly": "§cCommande réservée aux joueurs",
   "command.error": "§cErreur d'exécution: {0}",
-  "command.success": "§aOpération réussie"
+  "command.success": "§aOpération réussie",
+
+  "flogin.usage": "§eUsage: §f/flogin <code_préliminaire>",
+  "flogin.success": "§aConnexion réussie avec le code préliminaire! Bienvenue",
+  "flogin.invalidCode": "§cCode préliminaire invalide"
 }
